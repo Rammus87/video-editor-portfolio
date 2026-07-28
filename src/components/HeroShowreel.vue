@@ -3,7 +3,7 @@ import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useHeroScrollProgress } from '../composables/useHeroScrollProgress'
 
-const emit = defineEmits(['show-services'])
+const emit = defineEmits(['show-works'])
 const showreelPath = import.meta.env.VITE_SHOWREEL_URL || ''
 const video = ref(null)
 const isPlaying = ref(false)
@@ -97,26 +97,24 @@ onBeforeUnmount(() => {
     <div class="hero-sky-layer" aria-hidden="true"></div>
     <div class="hero-inner page-width">
       <div class="hero-copy">
-        <p class="eyebrow hero-eyebrow-entry">VIDEO EDITING</p>
+        <p class="eyebrow hero-eyebrow-entry">VIDEO EDITING / TAIWAN</p>
         <h1 id="hero-title">
-          <span class="hero-title-line"><span class="hero-title-line-inner">讓影像，</span></span>
-          <span class="hero-title-line"><span class="hero-title-line-inner">替你的內容說話。</span></span>
+          <span class="hero-title-line"><span class="hero-title-line-inner">讓影像，替你</span></span>
+          <span class="hero-title-line"><span class="hero-title-line-inner">的內容說話。</span></span>
         </h1>
-        <p class="hero-description hero-description-entry">短片、長片與航拍後製。<br>從內容重點到節奏安排，把素材整理成清楚、好看的成片。</p>
-        <button class="cta-button hero-cta-entry" type="button" @click="emit('show-services')">
-          查看服務與價格 <Icon icon="solar:arrow-right-linear" aria-hidden="true" />
-        </button>
       </div>
 
       <div class="hero-showreel-motion">
         <div class="hero-player-entry">
           <div class="hero-player-scroll" :style="playerStyle">
             <div class="showreel-wrap">
+              <div class="showreel-index" aria-hidden="true"><span>00</span><span>Showreel</span></div>
               <div class="showreel-frame">
                 <video
+                  v-if="showreelPath"
                   ref="video"
                   class="showreel-video"
-                  :src="showreelPath || undefined"
+                  :src="showreelPath"
                   autoplay
                   muted
                   loop
@@ -133,7 +131,7 @@ onBeforeUnmount(() => {
                   <p>作品集影片準備中</p>
                   <span>影片上線後，即可在這裡查看作品。</span>
                 </div>
-                <div class="video-controls">
+                <div v-else class="video-controls">
                   <button type="button" :aria-label="isPlaying ? '暫停作品集影片' : '播放作品集影片'" @click="togglePlayback">
                     <Icon :icon="isPlaying ? 'solar:pause-linear' : 'solar:play-linear'" aria-hidden="true" />
                   </button>
@@ -148,8 +146,15 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <div class="hero-note-entry">
-          <p class="showreel-note" :style="noteStyle">作品集播放中</p>
+          <p class="showreel-note" :style="noteStyle">{{ videoUnavailable ? 'SHOWREEL / 準備中' : 'SHOWREEL / 播放中' }}</p>
         </div>
+      </div>
+
+      <div class="hero-support">
+        <p class="hero-description hero-description-entry">短片、長片與航拍後製。<br>從內容重點到節奏安排，把素材整理成清楚、好看的成片。</p>
+        <button class="cta-button hero-cta-entry" type="button" @click="emit('show-works')">
+          查看精選作品 <Icon icon="solar:arrow-right-linear" aria-hidden="true" />
+        </button>
       </div>
     </div>
   </section>
