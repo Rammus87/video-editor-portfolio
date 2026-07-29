@@ -1,31 +1,23 @@
 <script setup>
 import { nextTick, ref } from 'vue'
+import WorkViewer from './WorkViewer.vue'
 import { featuredWorks } from '../data/works'
 import { usePortfolioReveal } from '../composables/usePortfolioMotion'
 
-const activeWorkId = ref('')
-const failedWorkIds = ref(new Set())
-const videoPlayers = new Map()
+const selectedWork = ref(null)
+const viewerTrigger = ref(null)
 const { section, isMotionReady, isRevealed } = usePortfolioReveal()
 
-function setVideoPlayer(id, element) {
-  if (element) videoPlayers.set(id, element)
-  else videoPlayers.delete(id)
+function openWorkViewer(work, event) {
+  viewerTrigger.value = event.currentTarget
+  selectedWork.value = work
 }
 
-async function playWork(work) {
-  activeWorkId.value = work.id
+async function closeWorkViewer() {
+  selectedWork.value = null
+
   await nextTick()
-
-  try {
-    await videoPlayers.get(work.id)?.play()
-  } catch {
-    // Native controls remain available when a browser defers playback.
-  }
-}
-
-function markWorkUnavailable(id) {
-  failedWorkIds.value = new Set([...failedWorkIds.value, id])
+  viewerTrigger.value?.focus()
 }
 </script>
 
@@ -53,48 +45,26 @@ function markWorkUnavailable(id) {
           :class="[`featured-work--${work.id}`, `is-${work.orientation}`]"
         >
           <div class="featured-work-media" :style="{ aspectRatio: work.aspectRatio }">
-            <div v-if="failedWorkIds.has(work.id)" class="featured-work-unavailable" role="status">
-              <p>作品影片暫時無法播放</p>
-              <span>你仍可查看作品資訊與介紹。</span>
-            </div>
-            <template v-else-if="activeWorkId === work.id">
-              <video
-                :id="`${work.id}-player`"
-                :ref="(element) => setVideoPlayer(work.id, element)"
-                class="featured-work-video"
-                :src="work.videoSrc"
-                :poster="work.posterSrc"
-                controls
-                playsinline
-                preload="metadata"
-                :aria-label="`${work.title}作品播放器`"
-                @error="markWorkUnavailable(work.id)"
-              />
-            </template>
-            <template v-else>
-              <button
-                class="featured-work-trigger"
-                type="button"
-                :aria-controls="`${work.id}-player`"
-                :aria-label="`播放${work.title}作品`"
-                @click="playWork(work)"
-                @keydown.enter.prevent="playWork(work)"
-                @keydown.space.prevent="playWork(work)"
+            <button
+              class="featured-work-trigger"
+              type="button"
+              aria-haspopup="dialog"
+              :aria-label="`開啟${work.title}作品觀看器`"
+              @click="openWorkViewer(work, $event)"
+            >
+              <img
+                class="featured-work-poster"
+                :src="work.posterSrc"
+                :alt="`${work.title}作品封面`"
+                :width="work.orientation === 'vertical' ? 720 : 1280"
+                :height="work.orientation === 'vertical' ? 1280 : 720"
+                loading="lazy"
               >
-                <img
-                  class="featured-work-poster"
-                  :src="work.posterSrc"
-                  :alt="`${work.title}作品封面`"
-                  :width="work.orientation === 'vertical' ? 720 : 1280"
-                  :height="work.orientation === 'vertical' ? 1280 : 720"
-                  loading="lazy"
-                >
-                <span class="featured-work-play" aria-hidden="true">
-                  <span class="featured-work-play-mark">▶</span>
-                  <span>播放完整作品</span>
-                </span>
-              </button>
-            </template>
+              <span class="featured-work-play" aria-hidden="true">
+                <span class="featured-work-play-mark">▶</span>
+                <span>播放完整作品</span>
+              </span>
+            </button>
           </div>
 
           <div class="featured-work-copy">
@@ -118,4 +88,10 @@ function markWorkUnavailable(id) {
       </div>
     </div>
   </section>
+
+  <WorkViewer
+    v-if="selectedWork"
+    :work="selectedWork"
+    @close="closeWorkViewer"
+  />
 </template>
