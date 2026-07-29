@@ -125,6 +125,7 @@ onBeforeUnmount(() => {
     ref="hero"
     id="top"
     class="hero-section"
+    data-portfolio-experience
     :class="{ 'is-entry-ready': entryReady, 'is-entry-static': skipEntry }"
     :style="heroStyle"
     aria-labelledby="hero-title"

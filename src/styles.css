@@ -648,3 +648,40 @@ html { background: var(--color-bg); }
 @media (prefers-reduced-motion: reduce) {
   .featured-work-poster, .featured-work-video { transition: none !important; }
 }
+
+/* Phase 3B: preserve the existing editorial layout while adding restrained portfolio feedback. */
+.site-main { position: relative; }
+[data-portfolio-experience] .archive-layout { position: relative; z-index: 2; }
+
+.portfolio-pointer-glow { display: none; }
+
+.portfolio-reveal-item { transition: opacity 520ms cubic-bezier(.22,1,.36,1), transform 520ms cubic-bezier(.22,1,.36,1); }
+.has-js .portfolio-reveal.is-motion-ready:not(.is-revealed) .portfolio-reveal-item { opacity: 0; transform: translate3d(0, 16px, 0); }
+.has-js .portfolio-reveal.is-revealed .portfolio-reveal-item { transition-delay: var(--portfolio-reveal-delay, 0ms); }
+
+.showreel-frame::before { position: absolute; z-index: 2; top: 0; left: 0; width: 42px; height: 2px; background: var(--color-accent); content: ''; opacity: .62; transform: scaleX(.72); transform-origin: left; transition: transform 260ms ease, opacity 260ms ease; }
+.cta-button .iconify { transition: transform 220ms ease; }
+
+.featured-work-trigger::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: var(--color-accent); content: ''; transform: scaleX(0); transform-origin: left; transition: transform 240ms ease; }
+.work-category { position: relative; transition: border-color 240ms ease, background-color 240ms ease; }
+.work-category-index, .work-archive-link h3 { transition: color 220ms ease, transform 220ms ease; }
+
+@media (min-width: 901px) and (hover: hover) and (pointer: fine) {
+  .portfolio-pointer-glow { position: fixed; z-index: 1; top: 0; left: 0; display: block; width: clamp(240px, 24vw, 340px); aspect-ratio: 1; background: radial-gradient(circle, rgba(117, 213, 255, .18) 0%, rgba(89, 152, 255, .10) 37%, rgba(40, 91, 173, .035) 58%, transparent 74%); filter: blur(2px); mix-blend-mode: screen; opacity: 0; pointer-events: none; transform: translate3d(calc(var(--portfolio-pointer-x, -500px) - 50%), calc(var(--portfolio-pointer-y, -500px) - 50%), 0); transition: opacity 180ms ease; will-change: transform, opacity; }
+  .portfolio-pointer-glow.is-visible { opacity: 1; }
+  .hero-showreel-motion:hover .showreel-frame::before, .hero-showreel-motion:focus-within .showreel-frame::before { opacity: 1; transform: scaleX(1); }
+  .hero-support .cta-button:hover .iconify, .hero-support .cta-button:focus-visible .iconify { transform: translateX(3px); }
+  .featured-work-trigger:hover, .featured-work-trigger:focus-visible { border-color: rgba(180, 220, 255, .82); }
+  .featured-work-trigger:hover .featured-work-poster, .featured-work-trigger:focus-visible .featured-work-poster { filter: brightness(1.08) contrast(1.04); transform: scale(1.015); }
+  .featured-work-trigger:hover::after, .featured-work-trigger:focus-visible::after { transform: scaleX(1); }
+  .featured-work-trigger:hover .featured-work-play, .featured-work-trigger:focus-visible .featured-work-play { color: var(--color-accent); }
+  .work-category:hover, .work-category:focus-within { border-color: rgba(180, 220, 255, .7); background: linear-gradient(90deg, rgba(48, 103, 166, .08), transparent 62%); }
+  .work-category:hover .work-category-index, .work-category:focus-within .work-category-index { color: var(--color-accent); transform: translateX(2px); }
+  .work-category:hover .work-archive-link h3, .work-archive-link:focus-visible h3 { color: var(--color-accent); transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-pointer-glow { display: none !important; }
+  .portfolio-reveal-item, .showreel-frame::before, .cta-button .iconify, .featured-work-trigger::after, .work-category, .work-category-index, .work-archive-link h3 { transition: none !important; }
+  .portfolio-reveal-item { transform: none !important; }
+}

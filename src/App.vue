@@ -8,8 +8,10 @@ import HeroShowreel from './components/HeroShowreel.vue'
 import PlanAdvisor from './components/PlanAdvisor.vue'
 import ServiceSelector from './components/ServiceSelector.vue'
 import WorkArchivePreview from './components/WorkArchivePreview.vue'
+import { usePortfolioPointerGlow } from './composables/usePortfolioMotion'
 
 const serviceSelector = ref(null)
+const { glow } = usePortfolioPointerGlow()
 
 function scrollTo(target) {
   document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -22,7 +24,8 @@ function openRecommendedService(recommendation) {
 
 <template>
   <AppHeader />
-  <main>
+  <main class="site-main">
+    <div ref="glow" class="portfolio-pointer-glow" aria-hidden="true"></div>
     <HeroShowreel @show-works="scrollTo('works')" />
     <FeaturedWorks />
     <WorkArchivePreview />

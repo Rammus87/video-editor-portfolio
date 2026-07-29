@@ -1,5 +1,8 @@
 <script setup>
 import { featuredWorks } from '../data/works'
+import { usePortfolioReveal } from '../composables/usePortfolioMotion'
+
+const { section, isMotionReady, isRevealed } = usePortfolioReveal()
 
 function scrollToWork(event, anchorId) {
   event.preventDefault()
@@ -17,14 +20,20 @@ function scrollToWork(event, anchorId) {
 </script>
 
 <template>
-  <section class="work-archive-preview archive-section" aria-labelledby="work-archive-title">
+  <section
+    ref="section"
+    class="work-archive-preview archive-section portfolio-reveal"
+    :class="{ 'is-motion-ready': isMotionReady, 'is-revealed': isRevealed }"
+    data-portfolio-experience
+    aria-labelledby="work-archive-title"
+  >
     <div class="page-width archive-layout">
-      <header class="archive-heading">
+      <header class="archive-heading portfolio-reveal-item" style="--portfolio-reveal-delay: 0ms">
         <p class="archive-kicker"><span class="archive-index">02</span><span>Work Archive</span></p>
         <h2 id="work-archive-title">作品目錄</h2>
       </header>
 
-      <ol class="work-category-list" aria-label="作品目錄">
+      <ol class="work-category-list portfolio-reveal-item" style="--portfolio-reveal-delay: 90ms" aria-label="作品目錄">
         <li v-for="work in featuredWorks" :key="work.id" class="work-category">
           <span class="work-category-index">{{ String(work.featuredOrder).padStart(2, '0') }}</span>
           <a

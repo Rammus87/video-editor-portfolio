@@ -1,10 +1,12 @@
 <script setup>
 import { nextTick, ref } from 'vue'
 import { featuredWorks } from '../data/works'
+import { usePortfolioReveal } from '../composables/usePortfolioMotion'
 
 const activeWorkId = ref('')
 const failedWorkIds = ref(new Set())
 const videoPlayers = new Map()
+const { section, isMotionReady, isRevealed } = usePortfolioReveal()
 
 function setVideoPlayer(id, element) {
   if (element) videoPlayers.set(id, element)
@@ -28,14 +30,21 @@ function markWorkUnavailable(id) {
 </script>
 
 <template>
-  <section id="works" class="featured-works archive-section" aria-labelledby="featured-works-title">
+  <section
+    ref="section"
+    id="works"
+    class="featured-works archive-section portfolio-reveal"
+    :class="{ 'is-motion-ready': isMotionReady, 'is-revealed': isRevealed }"
+    data-portfolio-experience
+    aria-labelledby="featured-works-title"
+  >
     <div class="page-width archive-layout">
-      <header class="archive-heading">
+      <header class="archive-heading portfolio-reveal-item" style="--portfolio-reveal-delay: 0ms">
         <p class="archive-kicker"><span class="archive-index">01</span><span>Selected Works</span></p>
         <h2 id="featured-works-title">精選作品</h2>
       </header>
 
-      <div class="featured-work-grid" aria-label="精選作品">
+      <div class="featured-work-grid portfolio-reveal-item" style="--portfolio-reveal-delay: 90ms" aria-label="精選作品">
         <article
           v-for="work in featuredWorks"
           :id="work.anchorId"
@@ -63,7 +72,15 @@ function markWorkUnavailable(id) {
               />
             </template>
             <template v-else>
-              <button class="featured-work-trigger" type="button" :aria-controls="`${work.id}-player`" :aria-label="`播放${work.title}作品`" @click="playWork(work)">
+              <button
+                class="featured-work-trigger"
+                type="button"
+                :aria-controls="`${work.id}-player`"
+                :aria-label="`播放${work.title}作品`"
+                @click="playWork(work)"
+                @keydown.enter.prevent="playWork(work)"
+                @keydown.space.prevent="playWork(work)"
+              >
                 <img
                   class="featured-work-poster"
                   :src="work.posterSrc"
@@ -93,7 +110,7 @@ function markWorkUnavailable(id) {
         </article>
       </div>
 
-      <div class="featured-work-note" aria-label="作品播放說明">
+      <div class="featured-work-note portfolio-reveal-item" style="--portfolio-reveal-delay: 170ms" aria-label="作品播放說明">
         <div class="archive-field-meta" aria-hidden="true">
           <span>完整作品</span>
           <span>點擊後播放</span>
