@@ -1,0 +1,60 @@
+export const works = [
+  {
+    id: 'aerial',
+    title: '航拍',
+    category: '航拍短片',
+    description: '以城市高樓、道路與空橋串連板橋街區，呈現城市移動與空間層次。',
+    responsibilities: ['拍攝', '剪輯'],
+    orientation: 'horizontal',
+    aspectRatio: '16 / 9',
+    duration: '00:17.9',
+    featuredOrder: 1,
+    isHero: true,
+    videoSrc: '/media/works/aerial/work.mp4',
+    heroPreviewSrc: '/media/works/aerial/hero-preview.mp4',
+    posterSrc: '/media/works/aerial/poster.jpg',
+    audioAllowed: true,
+    publicDisplay: true,
+    anchorId: 'work-aerial',
+  },
+  {
+    id: 'travel',
+    title: '旅遊',
+    category: '直式旅遊短片',
+    description: '以直式節奏濃縮港灣、海洋館與水族畫面，呈現輕快的旅遊紀錄。',
+    responsibilities: ['拍攝', '剪輯'],
+    orientation: 'vertical',
+    aspectRatio: '9 / 16',
+    duration: '00:19.9',
+    featuredOrder: 2,
+    isHero: false,
+    videoSrc: '/media/works/travel/work.mp4',
+    posterSrc: '/media/works/travel/poster.jpg',
+    audioAllowed: true,
+    publicDisplay: true,
+    anchorId: 'work-travel',
+  },
+  {
+    id: 'unboxing',
+    title: '開箱',
+    category: '長影片作品集錦',
+    description: '以收藏、對戰與開箱畫面組成橫式片頭，建立卡牌內容的主題辨識。',
+    responsibilities: ['剪輯'],
+    orientation: 'horizontal',
+    aspectRatio: '16 / 9',
+    duration: '00:17.9',
+    featuredOrder: 3,
+    isHero: false,
+    videoSrc: '/media/works/unboxing/work.mp4',
+    posterSrc: '/media/works/unboxing/poster.jpg',
+    audioAllowed: true,
+    publicDisplay: true,
+    anchorId: 'work-unboxing',
+  },
+]
+
+export const featuredWorks = works
+  .filter((work) => work.publicDisplay)
+  .sort((first, second) => first.featuredOrder - second.featuredOrder)
+
+export const heroWork = works.find((work) => work.isHero)

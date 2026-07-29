@@ -2,18 +2,23 @@
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useHeroScrollProgress } from '../composables/useHeroScrollProgress'
+import { heroWork } from '../data/works'
 
 const emit = defineEmits(['show-works'])
-const showreelPath = import.meta.env.VITE_SHOWREEL_URL || ''
+const configuredShowreelPath = import.meta.env.VITE_SHOWREEL_URL?.trim() || ''
+const showreelPath = ref(configuredShowreelPath || heroWork.heroPreviewSrc)
 const video = ref(null)
 const isPlaying = ref(false)
-const videoUnavailable = ref(!showreelPath)
+const videoUnavailable = ref(false)
+const reducedMotion = ref(false)
+const usingConfiguredShowreel = ref(Boolean(configuredShowreelPath))
 const hero = ref(null)
 const entryReady = ref(false)
 const skipEntry = ref(false)
 const { progress } = useHeroScrollProgress(hero)
 let entryFrame
 let entryScrollHandler
+let motionQuery
 
 function stopEntryScrollWatch() {
   if (entryScrollHandler) window.removeEventListener('scroll', entryScrollHandler)
@@ -48,7 +53,7 @@ async function togglePlayback() {
       await video.value.play()
       isPlaying.value = true
     } catch {
-      videoUnavailable.value = true
+      isPlaying.value = false
     }
   } else {
     video.value.pause()
@@ -56,15 +61,44 @@ async function togglePlayback() {
   }
 }
 
-function onCanPlay() {
-  isPlaying.value = true
+async function onCanPlay() {
   videoUnavailable.value = false
+  if (reducedMotion.value || !video.value?.paused) return
+
+  try {
+    await video.value.play()
+    isPlaying.value = true
+  } catch {
+    isPlaying.value = false
+  }
+}
+
+function onMediaError() {
+  if (usingConfiguredShowreel.value && showreelPath.value !== heroWork.heroPreviewSrc) {
+    usingConfiguredShowreel.value = false
+    showreelPath.value = heroWork.heroPreviewSrc
+    return
+  }
+
+  videoUnavailable.value = true
+  isPlaying.value = false
+}
+
+function updateMotionPreference(event) {
+  reducedMotion.value = event.matches
+  if (reducedMotion.value) {
+    video.value?.pause()
+    isPlaying.value = false
+  }
 }
 
 onMounted(async () => {
   await nextTick()
+  motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  updateMotionPreference(motionQuery)
+  motionQuery.addEventListener('change', updateMotionPreference)
 
-  if (window.scrollY > 80 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (window.scrollY > 80 || reducedMotion.value) {
     showCompletedEntry()
     return
   }
@@ -82,6 +116,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (entryFrame) window.cancelAnimationFrame(entryFrame)
   stopEntryScrollWatch()
+  motionQuery?.removeEventListener('change', updateMotionPreference)
 })
 </script>
 
@@ -97,7 +132,7 @@ onBeforeUnmount(() => {
     <div class="hero-sky-layer" aria-hidden="true"></div>
     <div class="hero-inner page-width">
       <div class="hero-copy">
-        <p class="eyebrow hero-eyebrow-entry">VIDEO EDITING / TAIWAN</p>
+        <p class="eyebrow hero-eyebrow-entry">拍攝・剪輯／台灣</p>
         <h1 id="hero-title">
           <span class="hero-title-line"><span class="hero-title-line-inner">讓影像，替你</span></span>
           <span class="hero-title-line"><span class="hero-title-line-inner">的內容說話。</span></span>
@@ -108,14 +143,16 @@ onBeforeUnmount(() => {
         <div class="hero-player-entry">
           <div class="hero-player-scroll" :style="playerStyle">
             <div class="showreel-wrap">
-              <div class="showreel-index" aria-hidden="true"><span>00</span><span>Showreel</span></div>
+              <div class="showreel-index" aria-hidden="true"><span>00</span><span>代表作品</span></div>
               <div class="showreel-frame">
                 <video
-                  v-if="showreelPath"
+                  v-if="showreelPath && !videoUnavailable"
+                  :key="showreelPath"
                   ref="video"
                   class="showreel-video"
                   :src="showreelPath"
-                  autoplay
+                  :poster="heroWork.posterSrc"
+                  :autoplay="!reducedMotion"
                   muted
                   loop
                   playsinline
@@ -124,7 +161,7 @@ onBeforeUnmount(() => {
                   @canplay="onCanPlay"
                   @play="isPlaying = true"
                   @pause="isPlaying = false"
-                  @error="videoUnavailable = true"
+                  @error="onMediaError"
                 />
                 <div v-if="videoUnavailable" class="video-placeholder" aria-live="polite">
                   <Icon icon="solar:video-frame-play-horizontal-linear" aria-hidden="true" />
@@ -132,21 +169,24 @@ onBeforeUnmount(() => {
                   <span>影片上線後，即可在這裡查看作品。</span>
                 </div>
                 <div v-else class="video-controls">
-                  <button type="button" :aria-label="isPlaying ? '暫停作品集影片' : '播放作品集影片'" @click="togglePlayback">
+                  <button
+                    type="button"
+                    :aria-label="isPlaying ? '暫停航拍作品預覽' : '播放航拍作品預覽'"
+                    @click="togglePlayback"
+                    @keydown.enter.prevent="togglePlayback"
+                    @keydown.space.prevent="togglePlayback"
+                  >
                     <Icon :icon="isPlaying ? 'solar:pause-linear' : 'solar:play-linear'" aria-hidden="true" />
                   </button>
-                  <span>SHOWREEL</span>
+                  <span>航拍預覽</span>
                   <span class="control-line" aria-hidden="true"></span>
-                  <button type="button" aria-label="切換靜音" @click="video && (video.muted = !video.muted)">
-                    <Icon icon="solar:volume-loud-linear" aria-hidden="true" />
-                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <div class="hero-note-entry">
-          <p class="showreel-note" :style="noteStyle">{{ videoUnavailable ? 'SHOWREEL / 準備中' : 'SHOWREEL / 播放中' }}</p>
+          <p class="showreel-note" :style="noteStyle">{{ videoUnavailable ? '作品精選／準備中' : '作品精選／航拍預覽' }}</p>
         </div>
       </div>
 

@@ -1,3 +1,21 @@
+<script setup>
+import { featuredWorks } from '../data/works'
+
+function scrollToWork(event, anchorId) {
+  event.preventDefault()
+
+  const target = document.getElementById(anchorId)
+  if (!target) return
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  target.scrollIntoView({
+    behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    block: 'start',
+  })
+  window.history.replaceState(null, '', `#${anchorId}`)
+}
+</script>
+
 <template>
   <section class="work-archive-preview archive-section" aria-labelledby="work-archive-title">
     <div class="page-width archive-layout">
@@ -6,30 +24,22 @@
         <h2 id="work-archive-title">作品目錄</h2>
       </header>
 
-      <ol class="work-category-list" aria-label="作品分類目錄">
-        <li class="work-category">
-          <span class="work-category-index">01</span>
-          <div>
-            <p>Short Form</p>
-            <h3>短片</h3>
+      <ol class="work-category-list" aria-label="作品目錄">
+        <li v-for="work in featuredWorks" :key="work.id" class="work-category">
+          <span class="work-category-index">{{ String(work.featuredOrder).padStart(2, '0') }}</span>
+          <a
+            class="work-archive-link"
+            :href="`#${work.anchorId}`"
+            @click="scrollToWork($event, work.anchorId)"
+            @keydown.enter.prevent="scrollToWork($event, work.anchorId)"
+          >
+            <span>{{ work.category }}</span>
+            <h3>{{ work.title }}</h3>
+          </a>
+          <div class="work-category-note">
+            <span>負責：{{ work.responsibilities.join('、') }}</span>
+            <span>{{ work.duration }}</span>
           </div>
-          <span class="work-category-note">短影音、節奏剪輯與重點整理</span>
-        </li>
-        <li class="work-category">
-          <span class="work-category-index">02</span>
-          <div>
-            <p>Long Form</p>
-            <h3>長片</h3>
-          </div>
-          <span class="work-category-note">內容敘事、訪談與長篇影片剪輯</span>
-        </li>
-        <li class="work-category">
-          <span class="work-category-index">03</span>
-          <div>
-            <p>Aerial Footage</p>
-            <h3>航拍素材</h3>
-          </div>
-          <span class="work-category-note">空拍畫面與成片的基礎後製整理</span>
         </li>
       </ol>
     </div>

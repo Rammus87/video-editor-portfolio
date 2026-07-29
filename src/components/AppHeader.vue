@@ -10,7 +10,7 @@ const navItems = [
 <template>
   <header class="app-header">
     <a class="brand" href="#top" aria-label="回到頁面頂端">
-      CINEMATIC EDITING DESK
+      個人影片剪輯
     </a>
     <nav aria-label="主選單">
       <a
