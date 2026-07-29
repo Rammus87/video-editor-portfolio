@@ -25,14 +25,15 @@ defineExpose({ openService })
 </script>
 
 <template>
-  <section id="services" class="services-section section-space" aria-labelledby="services-title">
+  <section id="pricing" class="services-section section-space" aria-labelledby="services-title">
     <div class="page-width">
       <div class="section-heading services-heading">
-        <h2 id="services-title">這次想剪哪一種影片？</h2>
-        <p>先選擇最接近需求的類型，再查看價格與合作流程。</p>
+        <p class="eyebrow">服務與價格</p>
+        <h2 id="services-title">剪輯服務與價格</h2>
+        <p>以下為常見剪輯服務與價格參考。</p>
       </div>
 
-      <div class="services-grid" aria-label="服務選擇">
+      <div class="services-grid" aria-label="服務與價格">
         <div
           v-for="service in services"
           :key="service.id"
