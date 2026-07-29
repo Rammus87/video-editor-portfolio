@@ -7,6 +7,15 @@ import { usePortfolioReveal } from '../composables/usePortfolioMotion'
 const selectedWork = ref(null)
 const viewerTrigger = ref(null)
 const { section, isMotionReady, isRevealed } = usePortfolioReveal()
+const unavailablePosterIds = ref(new Set())
+
+function isPosterUnavailable(workId) {
+  return unavailablePosterIds.value.has(workId)
+}
+
+function markPosterUnavailable(workId) {
+  unavailablePosterIds.value = new Set([...unavailablePosterIds.value, workId])
+}
 
 function openWorkViewer(work, event) {
   viewerTrigger.value = event.currentTarget
@@ -25,18 +34,18 @@ async function closeWorkViewer() {
   <section
     ref="section"
     id="works"
-    class="featured-works archive-section portfolio-reveal"
+    class="featured-works works-gallery archive-section portfolio-reveal"
     :class="{ 'is-motion-ready': isMotionReady, 'is-revealed': isRevealed }"
     data-portfolio-experience
     aria-labelledby="featured-works-title"
   >
-    <div class="page-width archive-layout">
-      <header class="archive-heading portfolio-reveal-item" style="--portfolio-reveal-delay: 0ms">
-        <p class="archive-kicker"><span class="archive-index">01</span><span>Selected Works</span></p>
-        <h2 id="featured-works-title">精選作品</h2>
+    <div class="page-width works-gallery__layout">
+      <header class="works-gallery__header portfolio-reveal-item" style="--portfolio-reveal-delay: 0ms">
+        <h2 id="featured-works-title"><span>02</span>作品</h2>
+        <p>這裡放我實際完成的剪輯內容。</p>
       </header>
 
-      <div class="featured-work-grid portfolio-reveal-item" style="--portfolio-reveal-delay: 90ms" aria-label="精選作品">
+      <div class="featured-work-grid works-gallery__grid portfolio-reveal-item" style="--portfolio-reveal-delay: 90ms" aria-label="作品展示">
         <article
           v-for="work in featuredWorks"
           :id="work.anchorId"
@@ -53,38 +62,29 @@ async function closeWorkViewer() {
               @click="openWorkViewer(work, $event)"
             >
               <img
+                v-if="!isPosterUnavailable(work.id)"
                 class="featured-work-poster"
                 :src="work.posterSrc"
                 :alt="`${work.title}作品封面`"
                 :width="work.orientation === 'vertical' ? 720 : 1280"
                 :height="work.orientation === 'vertical' ? 1280 : 720"
-                loading="lazy"
+                :loading="work.featuredOrder === 1 ? 'eager' : 'lazy'"
+                @error="markPosterUnavailable(work.id)"
               >
-              <span class="featured-work-play" aria-hidden="true">
-                <span class="featured-work-play-mark">▶</span>
-                <span>播放完整作品</span>
+              <span v-else class="featured-work-unavailable" role="status">
+                <strong>作品封面暫時無法載入</strong>
+                <span>{{ work.title }}</span>
               </span>
             </button>
-          </div>
-
-          <div class="featured-work-copy">
-            <div class="featured-work-meta">
-              <span>{{ String(work.featuredOrder).padStart(2, '0') }}</span>
-              <span>{{ work.category }}</span>
-              <span>{{ work.duration }}</span>
+            <div class="featured-work-overlay" aria-hidden="true">
+              <p class="featured-work-meta">
+                <span>{{ String(work.featuredOrder).padStart(2, '0') }}</span>
+                <span>{{ work.category }}</span>
+              </p>
+              <h3>{{ work.title }}</h3>
             </div>
-            <h3>{{ work.title }}</h3>
-            <p class="featured-work-responsibilities">負責：{{ work.responsibilities.join('、') }}</p>
-            <p class="featured-work-description">{{ work.description }}</p>
           </div>
         </article>
-      </div>
-
-      <div class="featured-work-note portfolio-reveal-item" style="--portfolio-reveal-delay: 170ms" aria-label="作品播放說明">
-        <div class="archive-field-meta" aria-hidden="true">
-          <span>完整作品</span>
-          <span>點擊後播放</span>
-        </div>
       </div>
     </div>
   </section>

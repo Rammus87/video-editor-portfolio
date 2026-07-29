@@ -13,6 +13,7 @@ const isOverHero = ref(true)
 const visibility = new Map()
 let observer
 let heroObserver
+let observedHeaderHeight = 0
 
 function setActive(target) {
   activeTarget.value = target
@@ -20,15 +21,20 @@ function setActive(target) {
 
 function syncActiveTarget() {
   const target = [...visibility.entries()]
-    .filter(([, ratio]) => ratio > 0)
-    .sort((first, second) => second[1] - first[1])[0]?.[0]
+    .filter(([, entry]) => entry.isIntersecting)
+    .sort((first, second) => (
+      Math.abs(first[1].top - observedHeaderHeight) - Math.abs(second[1].top - observedHeaderHeight)
+    ))[0]?.[0]
 
   if (target) setActive(target)
 }
 
 function handleIntersections(entries) {
   entries.forEach((entry) => {
-    visibility.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0)
+    visibility.set(entry.target.id, {
+      isIntersecting: entry.isIntersecting,
+      top: entry.boundingClientRect.top,
+    })
   })
   syncActiveTarget()
 }
@@ -38,6 +44,7 @@ function observeSections() {
   visibility.clear()
 
   const headerHeight = Math.ceil(header.value?.getBoundingClientRect().height || 0)
+  observedHeaderHeight = headerHeight
   observer = new IntersectionObserver(handleIntersections, {
     rootMargin: `-${headerHeight}px 0px -48% 0px`,
     threshold: [0, 0.01, 0.25, 0.5, 0.75],
