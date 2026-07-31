@@ -97,9 +97,6 @@ onBeforeUnmount(() => {
 <template>
   <header ref="header" class="app-header" :class="{ 'is-scrolled': !isOverHero }">
     <div class="app-header-inner page-width">
-      <a class="brand" href="#home" aria-label="回到主頁">
-        個人影片剪輯
-      </a>
       <nav aria-label="主選單">
         <a
           v-for="item in navItems"

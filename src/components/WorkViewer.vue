@@ -12,26 +12,65 @@ const emit = defineEmits(['close'])
 const dialog = ref(null)
 const video = ref(null)
 const isMediaUnavailable = ref(false)
+const isVisible = ref(false)
+const isClosing = ref(false)
+const ENTER_DURATION_MS = 360
+const EXIT_DURATION_MS = 320
 let closeEmitted = false
+let openTimer = null
+let closeTimer = null
 
-function stopPlayback() {
+function clearTimers() {
+  if (openTimer) window.clearTimeout(openTimer)
+  if (closeTimer) window.clearTimeout(closeTimer)
+  openTimer = null
+  closeTimer = null
+}
+
+function resetPlayback() {
   video.value?.pause()
+
+  try {
+    video.value.currentTime = 0
+  } catch {
+    // The media may not have loaded metadata before the viewer closes.
+  }
+}
+
+async function startPlayback() {
+  if (!video.value || isClosing.value) return
+
+  try {
+    video.value.currentTime = 0
+    await video.value.play()
+  } catch {
+    // A direct video click can retry playback when the browser defers it.
+  }
 }
 
 function finishClose() {
   if (closeEmitted) return
 
   closeEmitted = true
-  stopPlayback()
+  clearTimers()
+  resetPlayback()
   document.body.classList.remove('work-viewer-open')
+  if (dialog.value?.open) dialog.value.close()
   emit('close')
 }
 
 function requestClose() {
-  stopPlayback()
+  if (closeEmitted || isClosing.value) return
 
-  if (dialog.value?.open) dialog.value.close()
-  else finishClose()
+  isClosing.value = true
+  isVisible.value = false
+  resetPlayback()
+  closeTimer = window.setTimeout(finishClose, EXIT_DURATION_MS + 80)
+}
+
+function handleExitTransitionEnd(event) {
+  if (!isClosing.value || event.target !== event.currentTarget || event.propertyName !== 'transform') return
+  finishClose()
 }
 
 function handleCancel(event) {
@@ -43,6 +82,17 @@ function handleBackdropClick(event) {
   if (event.target === dialog.value) requestClose()
 }
 
+async function togglePlayback() {
+  if (!video.value || isClosing.value) return
+
+  if (video.value.paused) {
+    await startPlayback()
+    return
+  }
+
+  video.value.pause()
+}
+
 function markMediaUnavailable() {
   isMediaUnavailable.value = true
 }
@@ -52,16 +102,18 @@ onMounted(async () => {
   await nextTick()
 
   if (!dialog.value?.open) dialog.value?.showModal()
+  dialog.value?.focus()
 
-  try {
-    await video.value?.play()
-  } catch {
-    // Native controls and the poster remain available when playback is deferred.
-  }
+  window.requestAnimationFrame(() => {
+    isVisible.value = true
+  })
+
+  openTimer = window.setTimeout(startPlayback, ENTER_DURATION_MS)
 })
 
 onBeforeUnmount(() => {
-  stopPlayback()
+  clearTimers()
+  resetPlayback()
   document.body.classList.remove('work-viewer-open')
 })
 </script>
@@ -71,37 +123,41 @@ onBeforeUnmount(() => {
     <dialog
       ref="dialog"
       class="work-viewer"
-      :class="[`work-viewer--${props.work.orientation}`]"
-      :aria-labelledby="`work-viewer-title-${props.work.id}`"
+      :class="[
+        `work-viewer--${props.work.orientation}`,
+        { 'is-visible': isVisible, 'is-closing': isClosing },
+      ]"
+      :aria-labelledby="`work-viewer-accessible-title-${props.work.id}`"
+      tabindex="-1"
       @cancel="handleCancel"
-      @close="finishClose"
+      @keydown.escape.stop.prevent="requestClose('escape')"
       @click="handleBackdropClick"
     >
-      <div class="work-viewer__frame">
-        <header class="work-viewer__header">
-          <p :id="`work-viewer-title-${props.work.id}`" class="work-viewer__identity"><span>{{ String(props.work.featuredOrder).padStart(2, '0') }}</span><span>{{ props.work.title }}</span></p>
-          <button class="work-viewer__close" type="button" aria-label="關閉" @click="requestClose">關閉</button>
-        </header>
-
-        <div class="work-viewer__content">
-          <div class="work-viewer__media" :style="{ aspectRatio: props.work.aspectRatio }">
-            <video
-              v-if="!isMediaUnavailable"
-              ref="video"
-              class="work-viewer__video"
-              :src="props.work.videoSrc"
-              :poster="props.work.posterSrc"
-              controls
-              playsinline
-              preload="metadata"
-              :aria-label="`${props.work.title}作品播放器`"
-              @error="markMediaUnavailable"
-            />
-            <div v-else class="work-viewer__unavailable" role="status">
-              <p>作品影片暫時無法播放</p>
-              <span>請稍後再試。</span>
-            </div>
-          </div>
+      <p :id="`work-viewer-accessible-title-${props.work.id}`" class="work-viewer__accessible-title">
+        {{ `${props.work.title}作品觀看器` }}
+      </p>
+      <div
+        class="work-viewer__media"
+        :style="{ aspectRatio: props.work.aspectRatio }"
+        @click.stop
+        @transitionend="handleExitTransitionEnd"
+      >
+        <video
+          v-if="!isMediaUnavailable"
+          ref="video"
+          class="work-viewer__video"
+          :src="props.work.videoSrc"
+          :poster="props.work.posterSrc"
+          playsinline
+          preload="metadata"
+          :aria-label="`${props.work.title}作品影片；點擊可播放或暫停`"
+          @click="togglePlayback"
+          @ended="requestClose('ended')"
+          @error="markMediaUnavailable"
+        />
+        <div v-else class="work-viewer__unavailable" role="status">
+          <p>作品影片暫時無法播放</p>
+          <span>請稍後再試。</span>
         </div>
       </div>
     </dialog>

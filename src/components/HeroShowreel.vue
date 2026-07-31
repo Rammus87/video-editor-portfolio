@@ -145,7 +145,7 @@ onBeforeUnmount(() => {
     <div class="hero-content page-width">
       <div class="hero-copy">
         <h1 id="hero-title">
-          <span>讓影像，</span>
+          <span>讓剪輯</span>
           <span>替你的內容說話。</span>
         </h1>
         <p class="hero-description">我幫你把內容剪清楚。</p>

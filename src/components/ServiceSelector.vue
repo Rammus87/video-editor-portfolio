@@ -1,22 +1,113 @@
 <script setup>
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { formatCurrency, getPlanPriceLabel, services } from '../data/services'
+import PricingPlanDetail from './PricingPlanDetail.vue'
+
+const mobilePricingQuery = '(max-width: 820px)'
 
 const emit = defineEmits(['contact'])
 const activeServiceId = ref('short')
+const activePlanId = ref(services[0].tiers[0].id)
+const mobileExpandedServiceId = ref(null)
+const isMobileViewport = ref(typeof window !== 'undefined' && window.matchMedia(mobilePricingQuery).matches)
+let mobileMediaQuery
 
-function isActive(serviceId) {
+const activeService = computed(() => (
+  services.find((service) => service.id === activeServiceId.value) ?? services[0]
+))
+
+const activePlan = computed(() => (
+  activeService.value.tiers.find((tier) => tier.id === activePlanId.value) ?? activeService.value.tiers[0]
+))
+
+const groupedPlans = computed(() => groupedPlansFor(activeService.value))
+
+function groupedPlansFor(service) {
+  const groups = []
+  const groupsByDuration = new Map()
+
+  service.tiers.forEach((tier) => {
+    let group = groupsByDuration.get(tier.duration)
+
+    if (!group) {
+      group = {
+        id: `pricing-duration-${service.id}-${groups.length + 1}`,
+        duration: tier.duration,
+        tiers: [],
+      }
+      groupsByDuration.set(tier.duration, group)
+      groups.push(group)
+    }
+
+    group.tiers.push(tier)
+  })
+
+  return groups
+}
+
+function isActiveService(serviceId) {
   return activeServiceId.value === serviceId
 }
 
-function selectService(serviceId) {
-  if (services.some((service) => service.id === serviceId)) activeServiceId.value = serviceId
+function isActivePlan(planId) {
+  return activePlanId.value === planId
 }
 
-async function openService({ serviceId }) {
+function isServiceExpanded(serviceId) {
+  return mobileExpandedServiceId.value === serviceId
+}
+
+function isServiceHighlighted(serviceId) {
+  return isMobileViewport.value ? isServiceExpanded(serviceId) : isActiveService(serviceId)
+}
+
+function selectService(serviceId) {
+  const service = services.find((item) => item.id === serviceId)
+  if (!service) return
+
+  activeServiceId.value = service.id
+  activePlanId.value = service.tiers[0].id
+}
+
+function toggleMobileService(serviceId) {
+  if (isServiceExpanded(serviceId)) {
+    mobileExpandedServiceId.value = null
+    return
+  }
+
   selectService(serviceId)
+  mobileExpandedServiceId.value = serviceId
+}
+
+function handleServiceToggle(serviceId) {
+  if (isMobileViewport.value) {
+    toggleMobileService(serviceId)
+    return
+  }
+
+  selectService(serviceId)
+}
+
+function selectPlan(planId) {
+  if (!activeService.value.tiers.some((tier) => tier.id === planId)) return
+  activePlanId.value = planId
+}
+
+async function openService({ serviceId, tierId = '' }) {
+  const service = services.find((item) => item.id === serviceId)
+  if (!service) return
+
+  activeServiceId.value = service.id
+  activePlanId.value = service.tiers.some((tier) => tier.id === tierId)
+    ? tierId
+    : service.tiers[0].id
+  mobileExpandedServiceId.value = isMobileViewport.value ? service.id : null
+
   await nextTick()
-  document.getElementById(`pricing-panel-${serviceId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  const targetId = isMobileViewport.value
+    ? `pricing-mobile-panel-${service.id}`
+    : 'pricing-service-content'
+  document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 function triggerPrice(service) {
@@ -27,17 +118,20 @@ function triggerSummary(service) {
   return service.cardPriceNote || service.hoverCopy
 }
 
-function tierDeliveryLabel(tier) {
-  return tier.draftDeliveryTime ? `初稿：${tier.draftDeliveryTime}` : tier.deliveryLabel
+function syncMobileViewport(event) {
+  isMobileViewport.value = event.matches
+  if (!event.matches) mobileExpandedServiceId.value = null
 }
 
-function formatLongTermPlan(plan) {
-  return `${plan.period} ${plan.quantity} 支`
-}
+onMounted(() => {
+  mobileMediaQuery = window.matchMedia(mobilePricingQuery)
+  syncMobileViewport(mobileMediaQuery)
+  mobileMediaQuery.addEventListener('change', syncMobileViewport)
+})
 
-function getAerialExamplePrice(service, example) {
-  return formatCurrency(example.durationUnits * service.pricingFormula.pricePerUnit)
-}
+onBeforeUnmount(() => {
+  mobileMediaQuery?.removeEventListener('change', syncMobileViewport)
+})
 
 defineExpose({ openService })
 </script>
@@ -51,117 +145,150 @@ defineExpose({ openService })
         <p>依成片長度、內容需求與素材狀況確認合適的剪輯方式。</p>
       </div>
 
-      <div class="pricing-accordion" aria-label="服務與價格">
-        <section
-          v-for="service in services"
-          :key="service.id"
-          class="pricing-accordion__item"
-          :class="{ 'is-active': isActive(service.id) }"
-        >
-          <h3 class="pricing-accordion__heading">
-            <button
-              :id="`pricing-trigger-${service.id}`"
-              class="pricing-accordion__trigger"
-              type="button"
-              :aria-expanded="isActive(service.id)"
-              :aria-controls="`pricing-panel-${service.id}`"
-              @click="selectService(service.id)"
-              @keydown.enter.prevent="selectService(service.id)"
-              @keydown.space.prevent="selectService(service.id)"
-            >
-              <span class="pricing-accordion__number">{{ service.number }}</span>
-              <span class="pricing-accordion__label">
-                <span class="pricing-accordion__title">{{ service.title }}</span>
-                <span class="pricing-accordion__summary">{{ triggerSummary(service) }}</span>
-              </span>
-              <span class="pricing-accordion__price">{{ triggerPrice(service) }}</span>
-              <span class="pricing-accordion__symbol" aria-hidden="true">{{ isActive(service.id) ? '−' : '+' }}</span>
-            </button>
-          </h3>
-
-          <div
-            :id="`pricing-panel-${service.id}`"
-            class="pricing-accordion__panel"
-            :class="{ 'is-active': isActive(service.id) }"
-            :aria-labelledby="`pricing-trigger-${service.id}`"
-            :aria-hidden="!isActive(service.id)"
-            :inert="!isActive(service.id)"
-            role="region"
+      <div class="pricing-card-selector" aria-label="服務與價格">
+        <div class="pricing-service-grid" aria-label="主要服務">
+          <article
+            v-for="service in services"
+            :key="service.id"
+            class="pricing-service-card"
+            :class="{ 'is-mobile-expanded': isServiceExpanded(service.id) }"
           >
-            <div class="pricing-accordion__panel-inner">
-              <div class="pricing-accordion__content">
-                <div class="pricing-plan-list" :aria-label="`${service.title}方案`">
-                  <article v-for="tier in service.tiers" :key="tier.id" class="pricing-plan">
-                    <div class="pricing-plan__name">
-                      <h4>{{ tier.duration }}</h4>
-                      <p>{{ tier.variant }}</p>
-                    </div>
-                    <p
-                      class="pricing-plan__price"
-                      :class="{ 'is-pending': tier.pricePending, 'is-quote': tier.priceQuote }"
+            <h3>
+              <button
+                :id="`pricing-trigger-${service.id}`"
+                class="pricing-service-card__button"
+                :class="{ 'is-active': isServiceHighlighted(service.id) }"
+                type="button"
+                :aria-controls="isMobileViewport ? `pricing-mobile-panel-${service.id}` : undefined"
+                :aria-expanded="isMobileViewport ? isServiceExpanded(service.id) : undefined"
+                :aria-pressed="isMobileViewport ? undefined : isActiveService(service.id)"
+                @click="handleServiceToggle(service.id)"
+                @keydown.enter.prevent="handleServiceToggle(service.id)"
+                @keydown.space.prevent="handleServiceToggle(service.id)"
+              >
+                <span class="pricing-service-card__number">{{ service.number }}</span>
+                <span class="pricing-service-card__title">{{ service.title }}</span>
+                <span class="pricing-service-card__summary">{{ triggerSummary(service) }}</span>
+                <span class="pricing-service-card__footer">
+                  <span>{{ triggerPrice(service) }}</span>
+                  <span class="pricing-service-card__hint pricing-service-card__hint--desktop" aria-hidden="true">
+                    {{ isActiveService(service.id) ? '目前選擇' : '查看方案' }}
+                  </span>
+                  <span class="pricing-service-card__toggle" aria-hidden="true">
+                    {{ isServiceExpanded(service.id) ? '−' : '+' }}
+                  </span>
+                </span>
+              </button>
+            </h3>
+
+            <Transition name="pricing-mobile-accordion">
+              <section
+                v-if="isMobileViewport && isServiceExpanded(service.id)"
+                :id="`pricing-mobile-panel-${service.id}`"
+                class="pricing-mobile-accordion"
+                :aria-labelledby="`pricing-trigger-${service.id}`"
+                role="region"
+              >
+                <div class="pricing-mobile-accordion__inner">
+                  <div class="pricing-mobile-plan-picker" :aria-label="`${service.title}方案`">
+                    <section
+                      v-for="group in groupedPlansFor(service)"
+                      :key="group.id"
+                      class="pricing-mobile-duration-group"
+                      :aria-labelledby="`pricing-mobile-${group.id}`"
                     >
+                      <h4 :id="`pricing-mobile-${group.id}`">{{ group.duration }}</h4>
+                      <div class="pricing-mobile-duration-group__options">
+                        <button
+                          v-for="tier in group.tiers"
+                          :id="`pricing-mobile-plan-trigger-${tier.id}`"
+                          :key="tier.id"
+                          class="pricing-mobile-plan"
+                          :class="{ 'is-active': isActivePlan(tier.id) }"
+                          type="button"
+                          :aria-pressed="isActivePlan(tier.id)"
+                          @click="selectPlan(tier.id)"
+                          @keydown.enter.prevent="selectPlan(tier.id)"
+                          @keydown.space.prevent="selectPlan(tier.id)"
+                        >
+                          <span>{{ tier.variant }}</span>
+                          <strong :class="{ 'is-pending': tier.pricePending, 'is-quote': tier.priceQuote }">
+                            {{ getPlanPriceLabel(tier) }}
+                          </strong>
+                        </button>
+                      </div>
+                    </section>
+                  </div>
+
+                  <Transition name="pricing-detail-switch" mode="out-in">
+                    <PricingPlanDetail
+                      :key="`${service.id}-${activePlan.id}`"
+                      :content-id="`pricing-mobile-service-content-${service.id}`"
+                      :labelledby="`pricing-mobile-plan-trigger-${activePlan.id}`"
+                      :plan="activePlan"
+                      :service="service"
+                      variant="mobile"
+                      @contact="emit('contact')"
+                    />
+                  </Transition>
+                </div>
+              </section>
+            </Transition>
+          </article>
+        </div>
+
+        <Transition name="pricing-workspace-switch" mode="out-in">
+          <section
+            v-if="!isMobileViewport"
+            :id="`pricing-panel-${activeService.id}`"
+            :key="activeService.id"
+            class="pricing-workspace"
+            :aria-labelledby="`pricing-trigger-${activeService.id}`"
+          >
+            <aside class="pricing-plan-picker" aria-labelledby="pricing-plan-picker-title">
+              <p id="pricing-plan-picker-title" class="pricing-detail-label">選擇方案</p>
+
+              <section
+                v-for="group in groupedPlans"
+                :key="group.id"
+                class="pricing-duration-group"
+                :aria-labelledby="group.id"
+              >
+                <h3 :id="group.id">{{ group.duration }}</h3>
+                <div class="pricing-duration-group__options" :aria-label="`${group.duration}方案`">
+                  <button
+                    v-for="tier in group.tiers"
+                    :id="`pricing-plan-trigger-${tier.id}`"
+                    :key="tier.id"
+                    class="pricing-grouped-plan"
+                    :class="{ 'is-active': isActivePlan(tier.id) }"
+                    type="button"
+                    :aria-pressed="isActivePlan(tier.id)"
+                    @click="selectPlan(tier.id)"
+                    @keydown.enter.prevent="selectPlan(tier.id)"
+                    @keydown.space.prevent="selectPlan(tier.id)"
+                  >
+                    <span>{{ tier.variant }}</span>
+                    <strong :class="{ 'is-pending': tier.pricePending, 'is-quote': tier.priceQuote }">
                       {{ getPlanPriceLabel(tier) }}
-                    </p>
-                    <div class="pricing-plan__details">
-                      <p>{{ tier.summary }}</p>
-                      <p><span>包含：</span>{{ tier.included.join('、') }}</p>
-                      <p v-if="tier.excluded.length"><span>不包含：</span>{{ tier.excluded.join('、') }}</p>
-                    </div>
-                    <p class="pricing-plan__delivery">
-                      <span>{{ tierDeliveryLabel(tier) }}</span>
-                      <small v-if="tier.deliveryBreakdown">{{ tier.deliveryBreakdown }}</small>
-                    </p>
-                  </article>
+                    </strong>
+                  </button>
                 </div>
+              </section>
+            </aside>
 
-                <section v-if="service.pricingFormula" class="pricing-aerial" :aria-labelledby="`${service.id}-formula-title`">
-                  <p class="pricing-content-label">計價方式</p>
-                  <h4 :id="`${service.id}-formula-title`">{{ service.pricingFormula.headline }}</h4>
-                  <p>{{ service.pricingFormula.travelFeeLabel }}</p>
-                  <ul>
-                    <li v-for="example in service.pricingFormula.examples" :key="example.minutes">
-                      <span>成片 {{ example.minutes }} 分鐘</span>
-                      <strong>車馬費＋{{ getAerialExamplePrice(service, example) }}</strong>
-                    </li>
-                  </ul>
-                </section>
-
-                <section v-if="service.longTermPlans.length" class="pricing-long-term" :aria-labelledby="`${service.id}-long-term-title`">
-                  <div>
-                    <p class="pricing-content-label">長期合作</p>
-                    <h4 :id="`${service.id}-long-term-title`">{{ service.longTermTitle }}</h4>
-                    <p>{{ service.longTermDescription }}</p>
-                  </div>
-                  <ul>
-                    <li v-for="plan in service.longTermPlans" :key="`${plan.quantity}-${plan.period}`">
-                      <span>{{ formatLongTermPlan(plan) }}</span>
-                      <strong>{{ formatCurrency(plan.price) }}</strong>
-                    </li>
-                  </ul>
-                </section>
-
-                <section class="pricing-workflow" :aria-labelledby="`${service.id}-workflow-title`">
-                  <div>
-                    <p class="pricing-content-label">合作流程</p>
-                    <h4 :id="`${service.id}-workflow-title`">{{ service.cooperation.title }}</h4>
-                  </div>
-                  <ol>
-                    <li v-for="step in service.cooperation.steps" :key="step.id">
-                      <strong>{{ step.title }}</strong>
-                      <span>{{ step.description }}</span>
-                    </li>
-                  </ol>
-                  <p class="pricing-workflow__note">{{ service.cooperation.revisionPolicy.note }}</p>
-                </section>
-
-                <div class="pricing-contact">
-                  <p>想確認剪輯方式或交付時間，直接聯絡我。</p>
-                  <button class="cta-button" type="button" @click="emit('contact')">聯絡我</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+            <Transition name="pricing-detail-switch" mode="out-in">
+              <PricingPlanDetail
+                :key="`${activeService.id}-${activePlan.id}`"
+                content-id="pricing-service-content"
+                :labelledby="`pricing-plan-trigger-${activePlan.id}`"
+                :plan="activePlan"
+                :service="activeService"
+                @contact="emit('contact')"
+              />
+            </Transition>
+          </section>
+        </Transition>
       </div>
     </div>
   </section>

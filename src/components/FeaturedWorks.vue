@@ -8,6 +8,14 @@ const selectedWork = ref(null)
 const viewerTrigger = ref(null)
 const { section, isMotionReady, isRevealed } = usePortfolioReveal()
 const unavailablePosterIds = ref(new Set())
+const workCards = featuredWorks.map((work) => ({
+  ...work,
+  posterPosition: {
+    aerial: '58% 50%',
+    travel: '50% 44%',
+    unboxing: '55% 50%',
+  }[work.id],
+}))
 
 function isPosterUnavailable(workId) {
   return unavailablePosterIds.value.has(workId)
@@ -41,21 +49,25 @@ async function closeWorkViewer() {
   >
     <div class="page-width works-gallery__layout">
       <header class="works-gallery__header portfolio-reveal-item" style="--portfolio-reveal-delay: 0ms">
-        <h2 id="featured-works-title"><span>02</span>作品</h2>
-        <p>這裡放我實際完成的剪輯內容。</p>
+        <h2 id="featured-works-title">作品</h2>
       </header>
 
-      <div class="featured-work-grid works-gallery__grid portfolio-reveal-item" style="--portfolio-reveal-delay: 90ms" aria-label="作品展示">
+      <div class="works-gallery__grid portfolio-reveal-item" style="--portfolio-reveal-delay: 90ms" aria-label="作品展示">
         <article
-          v-for="work in featuredWorks"
+          v-for="work in workCards"
           :id="work.anchorId"
           :key="work.id"
-          class="featured-work"
-          :class="[`featured-work--${work.id}`, `is-${work.orientation}`]"
+          class="works-card"
         >
-          <div class="featured-work-media" :style="{ aspectRatio: work.aspectRatio }">
+          <span class="works-card__selection-frame" aria-hidden="true">
+            <span class="works-card__selection-corner works-card__selection-corner--top-left"></span>
+            <span class="works-card__selection-corner works-card__selection-corner--top-right"></span>
+            <span class="works-card__selection-corner works-card__selection-corner--bottom-left"></span>
+            <span class="works-card__selection-corner works-card__selection-corner--bottom-right"></span>
+          </span>
+          <div class="works-card__media">
             <button
-              class="featured-work-trigger"
+              class="works-card__trigger"
               type="button"
               aria-haspopup="dialog"
               :aria-label="`開啟${work.title}作品觀看器`"
@@ -63,26 +75,20 @@ async function closeWorkViewer() {
             >
               <img
                 v-if="!isPosterUnavailable(work.id)"
-                class="featured-work-poster"
+                class="works-card__poster"
                 :src="work.posterSrc"
                 :alt="`${work.title}作品封面`"
                 :width="work.orientation === 'vertical' ? 720 : 1280"
                 :height="work.orientation === 'vertical' ? 1280 : 720"
                 :loading="work.featuredOrder === 1 ? 'eager' : 'lazy'"
+                :style="{ objectPosition: work.posterPosition }"
                 @error="markPosterUnavailable(work.id)"
               >
-              <span v-else class="featured-work-unavailable" role="status">
+              <span v-else class="works-card__unavailable" role="status">
                 <strong>作品封面暫時無法載入</strong>
                 <span>{{ work.title }}</span>
               </span>
             </button>
-            <div class="featured-work-overlay" aria-hidden="true">
-              <p class="featured-work-meta">
-                <span>{{ String(work.featuredOrder).padStart(2, '0') }}</span>
-                <span>{{ work.category }}</span>
-              </p>
-              <h3>{{ work.title }}</h3>
-            </div>
           </div>
         </article>
       </div>
