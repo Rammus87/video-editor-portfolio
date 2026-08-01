@@ -64,15 +64,32 @@ function syncPointerTracking() {
 
 async function onCanPlay() {
   videoUnavailable.value = false
+  await ensureVideoPlayback()
+}
+
+async function ensureVideoPlayback() {
+  const media = video.value
+  if (!media) return
+
   if (reducedMotion.value) {
-    video.value?.pause()
+    media.pause()
     return
   }
-  if (!video.value?.paused) return
+
+  media.muted = true
+  media.defaultMuted = true
 
   try {
-    await video.value.play()
+    await media.play()
   } catch {}
+}
+
+function onLoadedMetadata() {
+  void ensureVideoPlayback()
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') void ensureVideoPlayback()
 }
 
 function onMediaError() {
@@ -90,7 +107,7 @@ function updateMotionPreference(event) {
   if (reducedMotion.value) {
     video.value?.pause()
   } else {
-    void onCanPlay()
+    void ensureVideoPlayback()
   }
   syncPointerTracking()
 }
@@ -100,8 +117,10 @@ onMounted(() => {
   finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)')
   motionQuery.addEventListener('change', updateMotionPreference)
   finePointerQuery.addEventListener('change', syncPointerTracking)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   updateMotionPreference(motionQuery)
   syncPointerTracking()
+  void ensureVideoPlayback()
 })
 
 onBeforeUnmount(() => {
@@ -109,6 +128,7 @@ onBeforeUnmount(() => {
   stopPointerTracking()
   motionQuery?.removeEventListener('change', updateMotionPreference)
   finePointerQuery?.removeEventListener('change', syncPointerTracking)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -130,9 +150,12 @@ onBeforeUnmount(() => {
       muted
       loop
       playsinline
+      webkit-playsinline
+      :controls="false"
       preload="metadata"
       aria-hidden="true"
       @canplay="onCanPlay"
+      @loadedmetadata="onLoadedMetadata"
       @error="onMediaError"
     />
     <div v-else class="hero-media-unavailable" aria-live="polite">

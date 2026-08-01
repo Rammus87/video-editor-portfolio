@@ -1,15 +1,22 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { formatCurrency, getPlanPriceLabel } from '../data/services'
 
-defineProps({
+const props = defineProps({
   contentId: { type: String, required: true },
   labelledby: { type: String, required: true },
   plan: { type: Object, required: true },
   service: { type: Object, required: true },
   variant: { type: String, default: 'desktop' },
+  mobileCoreOnly: { type: Boolean, default: false },
+  mobileSecondaryOnly: { type: Boolean, default: false },
 })
 
 defineEmits(['contact'])
+
+const workflowExpanded = ref(false)
+const longTermExpanded = ref(false)
+const isMobileDetail = computed(() => props.variant === 'mobile')
 
 function tierDeliveryLabel(tier) {
   return tier.draftDeliveryTime ? `初稿：${tier.draftDeliveryTime}` : tier.deliveryLabel
@@ -32,13 +39,13 @@ function getAerialExamplePrice(service, example) {
     :aria-labelledby="labelledby"
     role="region"
   >
-    <p class="pricing-a11y-status" aria-live="polite">
+    <p v-if="!mobileSecondaryOnly" class="pricing-a11y-status" aria-live="polite">
       目前顯示：{{ plan.duration }}，{{ plan.variant }}，{{ getPlanPriceLabel(plan) }}
     </p>
 
-    <h3 class="pricing-detail-panel__sr-title">{{ plan.duration }}・{{ plan.variant }}</h3>
+    <h3 v-if="!mobileSecondaryOnly" class="pricing-detail-panel__sr-title">{{ plan.duration }}・{{ plan.variant }}</h3>
 
-    <div class="pricing-detail-panel__columns">
+    <div v-if="!mobileSecondaryOnly" class="pricing-detail-panel__columns">
       <div class="pricing-detail-panel__primary">
         <section>
           <p class="pricing-detail-label">適用情境</p>
@@ -81,34 +88,74 @@ function getAerialExamplePrice(service, example) {
       </aside>
     </div>
 
-    <section :key="`${service.id}-${plan.id}`" class="pricing-workflow" :aria-labelledby="`pricing-${variant}-${service.id}-workflow-title`">
+    <section v-if="!mobileCoreOnly" :key="`${service.id}-${plan.id}`" class="pricing-workflow" :class="{ 'is-mobile-collapsible': isMobileDetail }" :aria-labelledby="`pricing-${variant}-${service.id}-workflow-title`">
       <div class="pricing-workflow__heading">
-        <h4 :id="`pricing-${variant}-${service.id}-workflow-title`">合作流程</h4>
-      </div>
-      <ol>
-        <li
-          v-for="(step, index) in service.cooperation.steps"
-          :key="step.id"
-          :style="{ '--pricing-flow-delay': `${index * 110}ms` }"
+        <h4 v-if="!isMobileDetail" :id="`pricing-${variant}-${service.id}-workflow-title`">合作流程</h4>
+        <button
+          v-else
+          :id="`pricing-${variant}-${service.id}-workflow-title`"
+          class="pricing-mobile-secondary-trigger"
+          type="button"
+          :aria-controls="`pricing-${variant}-${service.id}-workflow-panel`"
+          :aria-expanded="workflowExpanded"
+          @click="workflowExpanded = !workflowExpanded"
         >
-          <span class="pricing-workflow__node" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
-          <div><strong>{{ step.title }}</strong></div>
-        </li>
-      </ol>
-      <p class="pricing-workflow__note">{{ service.cooperation.revisionPolicy.note }}</p>
+          <span>合作流程</span>
+          <span aria-hidden="true">{{ workflowExpanded ? '−' : '+' }}</span>
+        </button>
+      </div>
+      <div
+        v-if="!isMobileDetail || workflowExpanded"
+        :id="`pricing-${variant}-${service.id}-workflow-panel`"
+        class="pricing-mobile-secondary-panel"
+        :aria-labelledby="`pricing-${variant}-${service.id}-workflow-title`"
+        role="region"
+      >
+        <ol>
+          <li
+            v-for="(step, index) in service.cooperation.steps"
+            :key="step.id"
+            :style="{ '--pricing-flow-delay': `${index * 110}ms` }"
+          >
+            <span class="pricing-workflow__node" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
+            <div><strong>{{ step.title }}</strong></div>
+          </li>
+        </ol>
+        <p class="pricing-workflow__note">{{ service.cooperation.revisionPolicy.note }}</p>
+      </div>
     </section>
 
-    <section v-if="service.longTermPlans.length" class="pricing-fixed-output" :aria-labelledby="`pricing-${variant}-${service.id}-long-term-title`">
-      <h4 :id="`pricing-${variant}-${service.id}-long-term-title`">長期合作</h4>
-      <ul>
-        <li v-for="longTermPlan in service.longTermPlans" :key="`${longTermPlan.quantity}-${longTermPlan.period}`">
-          <span>{{ formatLongTermPlan(longTermPlan) }}</span>
-          <strong>{{ formatCurrency(longTermPlan.price) }}</strong>
-        </li>
-      </ul>
+    <section v-if="!mobileCoreOnly && service.longTermPlans.length" class="pricing-fixed-output" :class="{ 'is-mobile-collapsible': isMobileDetail }" :aria-labelledby="`pricing-${variant}-${service.id}-long-term-title`">
+      <h4 v-if="!isMobileDetail" :id="`pricing-${variant}-${service.id}-long-term-title`">長期合作</h4>
+      <button
+        v-else
+        :id="`pricing-${variant}-${service.id}-long-term-title`"
+        class="pricing-mobile-secondary-trigger"
+        type="button"
+        :aria-controls="`pricing-${variant}-${service.id}-long-term-panel`"
+        :aria-expanded="longTermExpanded"
+        @click="longTermExpanded = !longTermExpanded"
+      >
+        <span>長期合作</span>
+        <span aria-hidden="true">{{ longTermExpanded ? '−' : '+' }}</span>
+      </button>
+      <div
+        v-if="!isMobileDetail || longTermExpanded"
+        :id="`pricing-${variant}-${service.id}-long-term-panel`"
+        class="pricing-mobile-secondary-panel"
+        :aria-labelledby="`pricing-${variant}-${service.id}-long-term-title`"
+        role="region"
+      >
+        <ul>
+          <li v-for="longTermPlan in service.longTermPlans" :key="`${longTermPlan.quantity}-${longTermPlan.period}`">
+            <span>{{ formatLongTermPlan(longTermPlan) }}</span>
+            <strong>{{ formatCurrency(longTermPlan.price) }}</strong>
+          </li>
+        </ul>
+      </div>
     </section>
 
-    <div class="pricing-detail-contact">
+    <div v-if="!mobileCoreOnly" class="pricing-detail-contact">
       <p>想確認剪輯方式或交付時間，直接聯絡我。</p>
       <button class="cta-button" type="button" @click="$emit('contact')">聯絡我</button>
     </div>
