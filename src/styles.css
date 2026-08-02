@@ -2267,3 +2267,127 @@ html { scroll-padding-top: var(--section-anchor-offset); }
   .work-viewer.is-closing .work-viewer__media { opacity: 1; transform: none; }
   .works-card::before { transform: none !important; }
 }
+
+/* Design Taste Hero + Header Refinement: keep the media primary and UI peripheral. */
+:root { --hero-spotlight-size: clamp(260px, 22vw, 390px); }
+
+.app-header nav {
+  top: clamp(20px, 2vw, 28px);
+  right: 0;
+  left: auto;
+  min-height: 40px;
+  grid-template-columns: repeat(3, minmax(60px, 1fr));
+  gap: 0;
+  border-color: rgba(194, 220, 248, .3);
+  border-radius: 0;
+  background: rgba(3, 9, 25, .56);
+  padding: 2px;
+  transform: none;
+}
+
+.app-header nav a {
+  min-height: 36px;
+  padding-inline: clamp(12px, 1.1vw, 16px);
+  border-radius: 0;
+  color: rgba(245, 247, 255, .72);
+  font-size: 11px;
+  letter-spacing: .065em;
+  transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.app-header nav a + a { border-left: 1px solid rgba(194, 220, 248, .16); }
+.app-header nav a:hover { color: var(--color-text); background: rgba(180, 220, 255, .08); }
+.app-header nav a.is-current { background: transparent; box-shadow: inset 0 -2px 0 var(--color-accent); color: var(--color-accent); }
+
+.hero-section {
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+.hero-background-video { object-position: 54% center; }
+
+.hero-dark-overlay {
+  background:
+    linear-gradient(to top, rgba(2, 8, 24, .42) 0%, rgba(2, 8, 24, .08) 48%, transparent 76%),
+    linear-gradient(90deg, rgba(2, 8, 24, .56) 0%, rgba(2, 8, 24, .34) 42%, rgba(2, 8, 24, .14) 76%, rgba(2, 8, 24, .06) 100%);
+}
+
+.hero-spotlight-overlay {
+  background: rgba(2, 8, 24, .3);
+  -webkit-mask-image: radial-gradient(circle var(--hero-spotlight-size) at var(--spotlight-x) var(--spotlight-y), transparent 0, transparent 24%, rgba(0, 0, 0, .16) 49%, #000 76%);
+  mask-image: radial-gradient(circle var(--hero-spotlight-size) at var(--spotlight-x) var(--spotlight-y), transparent 0, transparent 24%, rgba(0, 0, 0, .16) 49%, #000 76%);
+}
+
+.hero-section.is-spotlight-active .hero-spotlight-overlay { opacity: .72; }
+
+.hero-content {
+  padding-top: calc(var(--header-height) + 52px);
+  padding-bottom: clamp(158px, 20vh, 228px);
+}
+
+.hero-copy { max-width: 650px; }
+.hero-copy h1 {
+  max-width: 650px;
+  font-size: clamp(54px, 5.25vw, 80px);
+  letter-spacing: -.082em;
+  line-height: .95;
+  text-shadow: 0 3px 22px rgba(0, 0, 0, .3);
+}
+
+.hero-description {
+  margin: 26px 0 30px;
+  color: rgba(245, 247, 255, .9);
+  line-height: 1.65;
+}
+
+.hero-cta {
+  min-height: 44px;
+  gap: 10px;
+  border-color: rgba(223, 255, 0, .58);
+  background: rgba(3, 9, 25, .2);
+  padding: 9px 14px;
+  font-size: 13px;
+  letter-spacing: .025em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-section.is-spotlight-active .hero-spotlight-overlay { opacity: .72; }
+  .hero-cta:hover .iconify { transform: translate3d(3px, 0, 0); }
+}
+
+@media (max-width: 900px) {
+  .hero-content { padding-top: calc(var(--header-height) + 48px); padding-bottom: clamp(142px, 18vh, 188px); }
+  .hero-dark-overlay {
+    background:
+      linear-gradient(to top, rgba(2, 8, 24, .4), rgba(2, 8, 24, .08) 56%, transparent 78%),
+      linear-gradient(90deg, rgba(2, 8, 24, .54), rgba(2, 8, 24, .18) 88%);
+  }
+}
+
+@media (max-width: 620px) {
+  .app-header nav {
+    top: 12px;
+    right: 0;
+    width: min(204px, calc(100vw - 64px));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-header nav a { min-width: 0; min-height: 40px; padding-inline: 4px; font-size: 11px; letter-spacing: .02em; }
+  .hero-section { --spotlight-x: 62%; --spotlight-y: 48%; }
+  .hero-background-video { object-position: 58% center; }
+  .hero-dark-overlay {
+    background:
+      linear-gradient(to top, rgba(2, 8, 24, .52), rgba(2, 8, 24, .12) 58%, rgba(2, 8, 24, .16) 100%),
+      linear-gradient(90deg, rgba(2, 8, 24, .44), rgba(2, 8, 24, .1) 88%);
+  }
+  .hero-content { padding-top: calc(var(--header-height) + 44px); padding-bottom: calc(clamp(108px, 14svh, 128px) + env(safe-area-inset-bottom)); }
+  .hero-copy h1 { max-width: 350px; font-size: clamp(43px, 11.5vw, 48px); letter-spacing: -.088em; line-height: .97; }
+  .hero-description { margin: 22px 0 26px; font-size: 15px; line-height: 1.65; }
+  .hero-cta { min-height: 46px; padding-inline: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-header nav a,
+  .hero-cta,
+  .hero-cta .iconify { transition: none !important; transform: none !important; }
+}
