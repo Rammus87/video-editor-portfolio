@@ -2083,7 +2083,7 @@ html { scroll-padding-top: var(--section-anchor-offset); }
     transition: grid-template-rows 320ms cubic-bezier(.22, 1, .36, 1), opacity 220ms ease, transform 280ms cubic-bezier(.22, 1, .36, 1);
   }
 
-  .pricing-mobile-accordion__inner { min-height: 0; padding: 19px 18px 22px; }
+  .pricing-mobile-accordion__inner { min-height: 0; padding: 16px 18px 18px; }
   .pricing-mobile-accordion-enter-from,
   .pricing-mobile-accordion-leave-to { grid-template-rows: 0fr; opacity: 0; transform: translate3d(0, -6px, 0); }
 
@@ -2111,12 +2111,12 @@ html { scroll-padding-top: var(--section-anchor-offset); }
   }
   .pricing-mobile-duration-trigger > span:last-child { color: var(--color-accent); font-size: 20px; font-weight: 400; line-height: 1; }
   .pricing-mobile-duration-trigger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
-  .pricing-mobile-duration-group__content { min-width: 0; padding: 0 0 13px; }
+  .pricing-mobile-duration-group__content { min-width: 0; padding: 0 0 10px; }
   .pricing-mobile-duration-accordion-enter-active,
   .pricing-mobile-duration-accordion-leave-active { transition: opacity 180ms ease, transform 220ms cubic-bezier(.22, 1, .36, 1); }
   .pricing-mobile-duration-accordion-enter-from,
   .pricing-mobile-duration-accordion-leave-to { opacity: 0; transform: translate3d(0, -5px, 0); }
-  .pricing-mobile-duration-group__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 8px; }
+  .pricing-mobile-duration-group__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
   .pricing-mobile-duration-group__options > :only-child { grid-column: 1 / -1; }
   .pricing-mobile-plan {
     position: relative;
@@ -2127,7 +2127,7 @@ html { scroll-padding-top: var(--section-anchor-offset); }
     gap: 12px;
     border: 1px solid rgba(180, 220, 255, .24);
     background: rgba(8, 16, 39, .74);
-    padding: 9px 11px;
+    padding: 8px 10px;
     color: rgba(202, 216, 241, .72);
     font-size: 12px;
     font-weight: 700;
@@ -2143,19 +2143,19 @@ html { scroll-padding-top: var(--section-anchor-offset); }
   .pricing-mobile-plan.is-active { border-color: rgba(223, 255, 0, .68); background: rgba(223, 255, 0, .06); box-shadow: inset 2px 0 0 var(--color-accent); color: var(--color-text); }
   .pricing-mobile-plan:focus-visible { z-index: 1; outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-  .pricing-detail-panel--mobile { padding: 14px 0 0; }
-  .pricing-detail-panel--mobile .pricing-detail-panel__columns { grid-template-columns: 1fr; gap: 12px; }
+  .pricing-detail-panel--mobile { padding: 12px 0 0; }
+  .pricing-detail-panel--mobile .pricing-detail-panel__columns { grid-template-columns: 1fr; gap: 10px; }
   .pricing-detail-panel--mobile .pricing-detail-panel__primary,
   .pricing-detail-panel--mobile .pricing-detail-panel__secondary { gap: 12px; }
   .pricing-detail-panel--mobile .pricing-detail-panel__copy { margin-top: 5px; font-size: 12px; line-height: 1.55; }
-  .pricing-detail-panel--mobile .pricing-detail-panel__secondary { display: grid; grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr); gap: 0 14px; border-top: 1px solid rgba(180, 220, 255, .2); border-left: 0; padding-top: 12px; padding-left: 0; }
+  .pricing-detail-panel--mobile .pricing-detail-panel__secondary { display: grid; grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr); gap: 0 10px; border-top: 1px solid rgba(180, 220, 255, .2); border-left: 0; padding-top: 10px; padding-left: 0; }
   .pricing-detail-panel--mobile .pricing-detail-delivery:only-child { grid-column: 1 / -1; }
   .pricing-detail-panel--mobile .pricing-detail-delivery,
   .pricing-detail-panel--mobile .pricing-detail-excluded { display: flex; align-items: baseline; gap: 7px; }
   .pricing-detail-panel--mobile .pricing-detail-delivery .pricing-detail-label,
   .pricing-detail-panel--mobile .pricing-detail-excluded .pricing-detail-label { flex: 0 0 auto; white-space: nowrap; }
   .pricing-detail-panel--mobile .pricing-detail-panel__delivery { margin: 0; font-size: 13px; }
-  .pricing-detail-panel--mobile .pricing-detail-list { display: block; margin-top: 5px; font-size: 10px; letter-spacing: -.04em; line-height: 1.55; }
+  .pricing-detail-panel--mobile .pricing-detail-list { display: block; margin-top: 4px; font-size: 11px; letter-spacing: -.03em; line-height: 1.5; }
   .pricing-detail-panel--mobile .pricing-detail-list li { display: inline; padding-left: 0; }
   .pricing-detail-panel--mobile .pricing-detail-list li::before { content: none; }
   .pricing-detail-panel--mobile .pricing-detail-list li:not(:last-child)::after { color: rgba(180, 220, 255, .65); content: '、'; }

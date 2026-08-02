@@ -14,9 +14,16 @@ const props = defineProps({
 
 defineEmits(['contact'])
 
-const workflowExpanded = ref(false)
-const longTermExpanded = ref(false)
+const activeSecondaryPanel = ref(null)
 const isMobileDetail = computed(() => props.variant === 'mobile')
+
+function isSecondaryPanelExpanded(panelId) {
+  return activeSecondaryPanel.value === panelId
+}
+
+function toggleSecondaryPanel(panelId) {
+  activeSecondaryPanel.value = isSecondaryPanelExpanded(panelId) ? null : panelId
+}
 
 function tierDeliveryLabel(tier) {
   return tier.draftDeliveryTime ? `初稿：${tier.draftDeliveryTime}` : tier.deliveryLabel
@@ -96,16 +103,16 @@ function getAerialExamplePrice(service, example) {
           :id="`pricing-${variant}-${service.id}-workflow-title`"
           class="pricing-mobile-secondary-trigger"
           type="button"
-          :aria-controls="`pricing-${variant}-${service.id}-workflow-panel`"
-          :aria-expanded="workflowExpanded"
-          @click="workflowExpanded = !workflowExpanded"
+          :aria-controls="!isMobileDetail || isSecondaryPanelExpanded('workflow') ? `pricing-${variant}-${service.id}-workflow-panel` : undefined"
+          :aria-expanded="isSecondaryPanelExpanded('workflow')"
+          @click="toggleSecondaryPanel('workflow')"
         >
           <span>合作流程</span>
-          <span aria-hidden="true">{{ workflowExpanded ? '−' : '+' }}</span>
+          <span aria-hidden="true">{{ isSecondaryPanelExpanded('workflow') ? '−' : '+' }}</span>
         </button>
       </div>
       <div
-        v-if="!isMobileDetail || workflowExpanded"
+        v-if="!isMobileDetail || isSecondaryPanelExpanded('workflow')"
         :id="`pricing-${variant}-${service.id}-workflow-panel`"
         class="pricing-mobile-secondary-panel"
         :aria-labelledby="`pricing-${variant}-${service.id}-workflow-title`"
@@ -132,15 +139,15 @@ function getAerialExamplePrice(service, example) {
         :id="`pricing-${variant}-${service.id}-long-term-title`"
         class="pricing-mobile-secondary-trigger"
         type="button"
-        :aria-controls="`pricing-${variant}-${service.id}-long-term-panel`"
-        :aria-expanded="longTermExpanded"
-        @click="longTermExpanded = !longTermExpanded"
+        :aria-controls="!isMobileDetail || isSecondaryPanelExpanded('long-term') ? `pricing-${variant}-${service.id}-long-term-panel` : undefined"
+        :aria-expanded="isSecondaryPanelExpanded('long-term')"
+        @click="toggleSecondaryPanel('long-term')"
       >
         <span>長期合作</span>
-        <span aria-hidden="true">{{ longTermExpanded ? '−' : '+' }}</span>
+        <span aria-hidden="true">{{ isSecondaryPanelExpanded('long-term') ? '−' : '+' }}</span>
       </button>
       <div
-        v-if="!isMobileDetail || longTermExpanded"
+        v-if="!isMobileDetail || isSecondaryPanelExpanded('long-term')"
         :id="`pricing-${variant}-${service.id}-long-term-panel`"
         class="pricing-mobile-secondary-panel"
         :aria-labelledby="`pricing-${variant}-${service.id}-long-term-title`"
@@ -155,7 +162,7 @@ function getAerialExamplePrice(service, example) {
       </div>
     </section>
 
-    <div v-if="!mobileCoreOnly" class="pricing-detail-contact">
+    <div v-if="!mobileCoreOnly && !isMobileDetail" class="pricing-detail-contact">
       <p>想確認剪輯方式或交付時間，直接聯絡我。</p>
       <button class="cta-button" type="button" @click="$emit('contact')">聯絡我</button>
     </div>

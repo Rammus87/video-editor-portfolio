@@ -23,6 +23,13 @@ const activePlan = computed(() => (
 
 const groupedPlans = computed(() => groupedPlansFor(activeService.value))
 
+const activeMobilePlan = computed(() => {
+  if (!isMobileViewport.value || !mobileExpandedDurationId.value || !activePlanId.value) return null
+
+  const activeGroup = groupedPlans.value.find((group) => group.id === mobileExpandedDurationId.value)
+  return activeGroup?.tiers.find((tier) => tier.id === activePlanId.value) ?? null
+})
+
 function groupedPlansFor(service) {
   const groups = []
   const groupsByDuration = new Map()
@@ -74,16 +81,21 @@ function selectService(serviceId) {
   activePlanId.value = service.tiers[0].id
 }
 
+function clearMobilePlanSelection() {
+  mobileExpandedDurationId.value = null
+  activePlanId.value = ''
+}
+
 function toggleMobileService(serviceId) {
   if (isServiceExpanded(serviceId)) {
     mobileExpandedServiceId.value = null
-    mobileExpandedDurationId.value = null
+    clearMobilePlanSelection()
     return
   }
 
-  selectService(serviceId)
+  activeServiceId.value = serviceId
   mobileExpandedServiceId.value = serviceId
-  mobileExpandedDurationId.value = null
+  clearMobilePlanSelection()
 }
 
 function handleServiceToggle(serviceId) {
@@ -102,26 +114,38 @@ function selectPlan(planId) {
 
 function toggleMobileDuration(group) {
   if (isDurationExpanded(group.id)) {
-    mobileExpandedDurationId.value = null
+    clearMobilePlanSelection()
     return
   }
 
-  activePlanId.value = group.tiers[0].id
   mobileExpandedDurationId.value = group.id
+  activePlanId.value = ''
+}
+
+function makeLeavingPanelInert(element) {
+  element.inert = true
+  element.setAttribute('aria-hidden', 'true')
 }
 
 async function openService({ serviceId, tierId = '' }) {
   const service = services.find((item) => item.id === serviceId)
   if (!service) return
 
+  const selectedTier = service.tiers.find((tier) => tier.id === tierId)
+
   activeServiceId.value = service.id
-  activePlanId.value = service.tiers.some((tier) => tier.id === tierId)
-    ? tierId
-    : service.tiers[0].id
-  mobileExpandedServiceId.value = isMobileViewport.value ? service.id : null
-  mobileExpandedDurationId.value = isMobileViewport.value
-    ? groupedPlansFor(service).find((group) => group.tiers.some((tier) => tier.id === activePlanId.value))?.id ?? null
-    : null
+
+  if (isMobileViewport.value) {
+    activePlanId.value = selectedTier?.id ?? ''
+    mobileExpandedServiceId.value = service.id
+    mobileExpandedDurationId.value = selectedTier
+      ? groupedPlansFor(service).find((group) => group.tiers.some((tier) => tier.id === selectedTier.id))?.id ?? null
+      : null
+  } else {
+    activePlanId.value = selectedTier?.id ?? service.tiers[0].id
+    mobileExpandedServiceId.value = null
+    mobileExpandedDurationId.value = null
+  }
 
   await nextTick()
   const targetId = isMobileViewport.value
@@ -140,9 +164,16 @@ function triggerSummary(service) {
 
 function syncMobileViewport(event) {
   isMobileViewport.value = event.matches
-  if (!event.matches) {
-    mobileExpandedServiceId.value = null
-    mobileExpandedDurationId.value = null
+  mobileExpandedServiceId.value = null
+  mobileExpandedDurationId.value = null
+
+  if (event.matches) {
+    activePlanId.value = ''
+    return
+  }
+
+  if (!activeService.value.tiers.some((tier) => tier.id === activePlanId.value)) {
+    activePlanId.value = activeService.value.tiers[0].id
   }
 }
 
@@ -182,7 +213,7 @@ defineExpose({ openService })
                 class="pricing-service-card__button"
                 :class="{ 'is-active': isServiceHighlighted(service.id) }"
                 type="button"
-                :aria-controls="isMobileViewport ? `pricing-mobile-panel-${service.id}` : undefined"
+                :aria-controls="isMobileViewport && isServiceExpanded(service.id) ? `pricing-mobile-panel-${service.id}` : undefined"
                 :aria-expanded="isMobileViewport ? isServiceExpanded(service.id) : undefined"
                 :aria-pressed="isMobileViewport ? undefined : isActiveService(service.id)"
                 @click="handleServiceToggle(service.id)"
@@ -204,7 +235,7 @@ defineExpose({ openService })
               </button>
             </h3>
 
-            <Transition name="pricing-mobile-accordion">
+            <Transition name="pricing-mobile-accordion" @before-leave="makeLeavingPanelInert">
               <section
                 v-if="isMobileViewport && isServiceExpanded(service.id)"
                 :id="`pricing-mobile-panel-${service.id}`"
@@ -225,7 +256,7 @@ defineExpose({ openService })
                           :id="`pricing-mobile-${group.id}`"
                           class="pricing-mobile-duration-trigger"
                           type="button"
-                          :aria-controls="`pricing-mobile-duration-panel-${group.id}`"
+                          :aria-controls="isDurationExpanded(group.id) ? `pricing-mobile-duration-panel-${group.id}` : undefined"
                           :aria-expanded="isDurationExpanded(group.id)"
                           @click="toggleMobileDuration(group)"
                           @keydown.enter.prevent="toggleMobileDuration(group)"
@@ -236,7 +267,7 @@ defineExpose({ openService })
                         </button>
                       </h4>
 
-                      <Transition name="pricing-mobile-duration-accordion">
+                      <Transition name="pricing-mobile-duration-accordion" @before-leave="makeLeavingPanelInert">
                         <div
                           v-if="isDurationExpanded(group.id)"
                           :id="`pricing-mobile-duration-panel-${group.id}`"
@@ -264,15 +295,15 @@ defineExpose({ openService })
                             </button>
                           </div>
 
-                          <Transition name="pricing-detail-switch" mode="out-in">
+                          <Transition name="pricing-detail-switch" mode="out-in" @before-leave="makeLeavingPanelInert">
                             <PricingPlanDetail
-                              :key="`${service.id}-${activePlan.id}`"
+                              v-if="activeMobilePlan"
+                              :key="`${service.id}-${activeMobilePlan.id}`"
                               :content-id="`pricing-mobile-service-content-${service.id}`"
-                              :labelledby="`pricing-mobile-plan-trigger-${activePlan.id}`"
-                              :plan="activePlan"
+                              :labelledby="`pricing-mobile-plan-trigger-${activeMobilePlan.id}`"
+                              :plan="activeMobilePlan"
                               :service="service"
                               variant="mobile"
-                              mobile-core-only
                               @contact="emit('contact')"
                             />
                           </Transition>
@@ -281,19 +312,6 @@ defineExpose({ openService })
                     </section>
                   </div>
 
-                  <Transition name="pricing-detail-switch" mode="out-in">
-                    <PricingPlanDetail
-                      v-if="mobileExpandedDurationId"
-                      :key="`${service.id}-${activePlan.id}-secondary`"
-                      :content-id="`pricing-mobile-service-secondary-${service.id}`"
-                      :labelledby="`pricing-mobile-plan-trigger-${activePlan.id}`"
-                      :plan="activePlan"
-                      :service="service"
-                      variant="mobile"
-                      mobile-secondary-only
-                      @contact="emit('contact')"
-                    />
-                  </Transition>
                 </div>
               </section>
             </Transition>
