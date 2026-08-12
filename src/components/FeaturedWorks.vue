@@ -339,6 +339,23 @@ onBeforeUnmount(() => {
               </div>
             </article>
           </div>
+
+          <div
+            class="works-carousel__position"
+            :aria-label="`${orientation.title}位置`"
+            role="group"
+          >
+            <button
+              v-for="(work, workIndex) in orientation.works"
+              :key="`${work.id}-position`"
+              class="works-carousel__position-button"
+              :class="{ 'is-active': getActiveWorkIndex(orientation.id) === workIndex }"
+              type="button"
+              :aria-current="getActiveWorkIndex(orientation.id) === workIndex ? 'true' : undefined"
+              :aria-label="`切換到第 ${workIndex + 1} 個${orientation.title}`"
+              @click="setActiveWork(orientation.id, workIndex, orientation.works.length)"
+            ></button>
+          </div>
         </section>
       </div>
     </div>
