@@ -65,6 +65,7 @@ export const services = [
     title: '短片',
     startingPrice: 300,
     icon: 'solar:clapperboard-linear',
+    platforms: ['shorts', 'instagram', 'tiktok', 'bilibili'],
     hoverCopy: 'Reels、Shorts、活動精華，適合節奏明快的短影音內容。',
     description: '短影音、Reels 與活動精華，節奏明快而不失品牌質感。',
     tiers: [
@@ -175,6 +176,7 @@ export const services = [
     title: '長片',
     startingPrice: 1500,
     icon: 'solar:film-reel-linear',
+    platforms: ['youtube', 'bilibili'],
     hoverCopy: 'YouTube、訪談與 Vlog，整理內容結構與觀看節奏。',
     description: '訪談、YouTube、品牌紀錄與活動影片，保留內容的起伏與重點。',
     tiers: [
@@ -271,6 +273,7 @@ export const services = [
     startingPrice: 1000,
     cardPriceNote: '車馬費另計；基礎剪輯後成片每 5 分鐘 NT$1,000',
     icon: 'solar:drone-outline',
+    platforms: ['youtube', 'instagram', 'tiktok', 'bilibili'],
     hoverCopy: '現場航拍搭配基礎後製，補足地景、建築與空間畫面。',
     description: '依場地與天候安排航拍，搭配基礎剪輯完成可直接使用的畫面。',
     pricingFormula: {

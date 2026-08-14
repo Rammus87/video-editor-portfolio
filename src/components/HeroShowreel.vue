@@ -177,9 +177,5 @@ onBeforeUnmount(() => {
         </a>
       </div>
     </div>
-    <a class="hero-scroll-hint" href="#pricing">
-      <span>向下瀏覽</span>
-      <span class="hero-scroll-line" aria-hidden="true"></span>
-    </a>
   </section>
 </template>

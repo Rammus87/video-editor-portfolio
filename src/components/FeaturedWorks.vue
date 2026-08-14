@@ -246,23 +246,16 @@ onBeforeUnmount(() => {
           :id="`works-orientation-panel-${orientation.id}`"
           :key="orientation.id"
           class="works-gallery__group portfolio-reveal-item"
-          :class="[
-            `works-gallery__group--${orientation.id}`,
-            { 'is-mobile-active': activeOrientation === orientation.id },
-          ]"
-          :data-mobile-active="activeOrientation === orientation.id"
+          :class="`works-gallery__group--${orientation.id}`"
+          v-show="activeOrientation === orientation.id"
           role="tabpanel"
-          :aria-labelledby="`works-gallery__group-title-${orientation.id}`"
+          :aria-hidden="activeOrientation !== orientation.id ? 'true' : undefined"
+          :aria-labelledby="`works-orientation-tab-${orientation.id}`"
           :style="{ '--portfolio-reveal-delay': `${120 + index * 70}ms` }"
         >
-          <div class="works-carousel__header">
-            <h3 :id="`works-gallery__group-title-${orientation.id}`" class="works-gallery__group-heading">
-              {{ orientation.title }}
-            </h3>
-          </div>
-
-          <div
-            class="works-carousel"
+          <div class="works-carousel-stage">
+            <div
+              class="works-carousel"
             :class="`works-carousel--${orientation.id}`"
             :aria-label="`${orientation.title}輪播，可使用左右方向鍵瀏覽`"
             role="region"
@@ -338,13 +331,13 @@ onBeforeUnmount(() => {
                 </button>
               </div>
             </article>
-          </div>
+            </div>
 
-          <div
-            class="works-carousel__position"
-            :aria-label="`${orientation.title}位置`"
-            role="group"
-          >
+            <div
+              class="works-carousel__position"
+              :aria-label="`${orientation.title}位置`"
+              role="group"
+            >
             <button
               v-for="(work, workIndex) in orientation.works"
               :key="`${work.id}-position`"
@@ -355,6 +348,7 @@ onBeforeUnmount(() => {
               :aria-label="`切換到第 ${workIndex + 1} 個${orientation.title}`"
               @click="setActiveWork(orientation.id, workIndex, orientation.works.length)"
             ></button>
+            </div>
           </div>
         </section>
       </div>

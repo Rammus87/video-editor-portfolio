@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 225 225" width="225" height="225" aria-label="bilibili logo">
+  <g fill="none" stroke="#21A9E8" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="27" y="50" width="171" height="116" rx="26" ry="26"/>
+    <path d="M78 49L57 28"/>
+    <path d="M147 49L168 28"/>
+    <path d="M55 166v8"/>
+    <path d="M171 166v8"/>
+    <path d="M57 99l34-6"/>
+    <path d="M168 99l-34-6"/>
+    <path d="M88 130q7 0 10 7q3 7 10 7q7 0 10-7q3-7 10-7q7 0 10 7q3 7 10 7"/>
+  </g>
+</svg>

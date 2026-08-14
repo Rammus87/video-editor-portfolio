@@ -1,9 +1,22 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { formatCurrency, getPlanPriceLabel, services } from '../data/services'
+import youtubeShortsIcon from '../assets/icons/platforms/youtube-shorts.svg'
+import youtubeIcon from '../assets/icons/platforms/youtube.svg'
+import instagramIcon from '../assets/icons/platforms/instagram.svg'
+import tiktokIcon from '../assets/icons/platforms/tiktok.svg'
+import bilibiliIcon from '../assets/icons/platforms/bilibili.svg'
 import PricingPlanDetail from './PricingPlanDetail.vue'
 
 const mobilePricingQuery = '(max-width: 820px)'
+
+const platformAssets = {
+  shorts: { src: youtubeShortsIcon, label: 'YouTube Shorts' },
+  youtube: { src: youtubeIcon, label: 'YouTube' },
+  instagram: { src: instagramIcon, label: 'Instagram' },
+  tiktok: { src: tiktokIcon, label: 'TikTok' },
+  bilibili: { src: bilibiliIcon, label: 'bilibili' },
+}
 
 const emit = defineEmits(['contact'])
 const activeServiceId = ref('short')
@@ -220,8 +233,25 @@ defineExpose({ openService })
                 @keydown.enter.prevent="handleServiceToggle(service.id)"
                 @keydown.space.prevent="handleServiceToggle(service.id)"
               >
-                <span class="pricing-service-card__number">{{ service.number }}</span>
-                <span class="pricing-service-card__title">{{ service.title }}</span>
+                <span class="pricing-service-card__header">
+                  <span class="pricing-service-card__identity">
+                    <span class="pricing-service-card__number">{{ service.number }}</span>
+                    <span class="pricing-service-card__title">{{ service.title }}</span>
+                  </span>
+                  <span class="pricing-service-card__platforms" aria-label="適合發布平台">
+                    <span
+                      v-for="platform in service.platforms"
+                      :key="platform"
+                      class="pricing-service-card__platform"
+                      :class="{ 'pricing-service-card__platform--shorts': platform === 'shorts' }"
+                      role="img"
+                      :aria-label="platformAssets[platform].label"
+                      :title="platformAssets[platform].label"
+                    >
+                      <img :src="platformAssets[platform].src" alt="" aria-hidden="true" />
+                    </span>
+                  </span>
+                </span>
                 <span class="pricing-service-card__summary">{{ triggerSummary(service) }}</span>
                 <span class="pricing-service-card__footer">
                   <span>{{ triggerPrice(service) }}</span>

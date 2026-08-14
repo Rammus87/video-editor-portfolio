@@ -1,5 +1,13 @@
 # Portfolio Rebuild Project Instructions
 
+## State-Stable Layout / No Layout Jump
+
+- 同一 UI region 的 sibling states（tabs、filters、carousel modes、orientation、plan 或其他等價 state replacement）切換時，不得因內容高度差異使外層區塊明顯變高或變低。
+- presentation frame 必須在同一 breakpoint 維持穩定 geometry；state content 應 scale、constrain、reflow、simplify 或 clamp 以適配 frame，而不是讓 frame 跟著 state 改尺寸。
+- 固定高度由 UX 與 Art Direction 選擇緊湊、可讀的基準，不得機械採用最高 state，也不得用大量空白填滿較短 state。
+- 切換不得造成下一區塊、scroll geometry、周邊 controls 或 CLS-like layout movement；Desktop、Tablet、Mobile 可各有不同 stable geometry，但同一 breakpoint 的 sibling states 必須穩定。
+- 明確 Disclosure / Accordion 的展開與收合可改變高度；但同一展開層級內 sibling state 的切換仍不得產生不必要的高度跳動。本規則以本檔為 authoritative owner，不在其他 Skill 重複建立。
+
 在此專案執行任何分析、修改、測試或審查前：
 
 1. 完整閱讀 `.agents/skills/video-editor-portfolio-rebuild/SKILL.md`。

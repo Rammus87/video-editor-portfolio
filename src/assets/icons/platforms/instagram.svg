@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-label="Instagram logo">
+  <defs>
+    <linearGradient id="ig" x1="16%" y1="100%" x2="84%" y2="0%">
+      <stop offset="0%" stop-color="#FFDC80"/>
+      <stop offset="17%" stop-color="#FCAF45"/>
+      <stop offset="34%" stop-color="#F77737"/>
+      <stop offset="51%" stop-color="#E1306C"/>
+      <stop offset="68%" stop-color="#C13584"/>
+      <stop offset="84%" stop-color="#833AB4"/>
+      <stop offset="100%" stop-color="#405DE6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="500" cy="500" r="470" fill="url(#ig)"/>
+  <rect x="250" y="250" width="500" height="500" rx="118" ry="118" fill="none" stroke="#FFFFFF" stroke-width="64"/>
+  <circle cx="500" cy="500" r="125" fill="none" stroke="#FFFFFF" stroke-width="64"/>
+  <circle cx="660" cy="340" r="42" fill="#FFFFFF"/>
+</svg>
