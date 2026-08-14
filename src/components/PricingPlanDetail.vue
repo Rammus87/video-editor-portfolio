@@ -12,8 +12,6 @@ const props = defineProps({
   mobileSecondaryOnly: { type: Boolean, default: false },
 })
 
-defineEmits(['contact'])
-
 const activeSecondaryPanel = ref(null)
 const isMobileDetail = computed(() => props.variant === 'mobile')
 
@@ -161,10 +159,5 @@ function getAerialExamplePrice(service, example) {
         </ul>
       </div>
     </section>
-
-    <div v-if="!mobileCoreOnly && !isMobileDetail" class="pricing-detail-contact">
-      <p>想確認剪輯方式或交付時間，直接聯絡我。</p>
-      <button class="cta-button" type="button" @click="$emit('contact')">聯絡我</button>
-    </div>
   </article>
 </template>

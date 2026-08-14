@@ -381,6 +381,74 @@ export const services = [
     },
     longTermPlans: [],
   },
+  {
+    id: 'cover',
+    serviceKind: 'cover',
+    number: '04',
+    title: '封面製作',
+    startingPrice: 400,
+    platforms: ['youtube', 'shorts', 'instagram', 'tiktok', 'bilibili'],
+    hoverCopy: '依影片類型、觀眾年齡與內容目標設計，兼顧吸睛表達與整體美術一致性。',
+    coverPlatforms: [
+      {
+        id: 'youtube',
+        label: 'YouTube',
+        assetKey: 'youtube',
+        presets: [
+          { id: 'youtube-16-9', label: '16:9' },
+        ],
+      },
+      {
+        id: 'shorts',
+        label: 'YouTube Shorts',
+        assetKey: 'shorts',
+        presets: [
+          { id: 'shorts-9-16', label: '9:16', displayName: 'Shorts 首幀 / 封面構圖' },
+        ],
+      },
+      {
+        id: 'instagram-reels',
+        label: 'Instagram Reels',
+        assetKey: 'instagram',
+        presets: [
+          { id: 'instagram-reels-cover', label: 'Reels Cover', secondary: '420 × 654' },
+        ],
+      },
+      {
+        id: 'tiktok',
+        label: 'TikTok',
+        assetKey: 'tiktok',
+        presets: [
+          { id: 'tiktok-9-16', label: '9:16' },
+        ],
+      },
+      {
+        id: 'douyin',
+        label: '抖音',
+        presets: [
+          { id: 'douyin-3-4', label: '3:4', primary: true },
+          { id: 'douyin-9-16', label: '9:16', extensionPrice: 100 },
+        ],
+      },
+      {
+        id: 'bilibili',
+        label: 'bilibili',
+        assetKey: 'bilibili',
+        presets: [
+          { id: 'bilibili-4-3', label: '4:3', primary: true },
+          { id: 'bilibili-16-9', label: '16:9', extensionPrice: 100 },
+        ],
+      },
+    ],
+    coverPricing: {
+      basePrice: 400,
+      baseLabel: '1 個設計 / 1 種尺寸',
+      delivery: '1 天內',
+      revisions: '原設計方向內不限次數',
+      newDesignRule: '若需重新構圖或改變整體內容表達，視為新的封面製作。',
+      newDesignPrice: 400,
+    },
+  },
 ]
 
 const currency = new Intl.NumberFormat('zh-TW')
@@ -390,7 +458,7 @@ export function formatCurrency(value) {
 }
 
 export function getPlanPriceLabel(tier) {
-  if (tier.pricePending) return '價格設定中'
+  if (tier.pricePending) return '諮詢詳談'
   if (tier.priceQuote) return '另行報價'
   return tier.priceLabel ?? formatCurrency(tier.price)
 }

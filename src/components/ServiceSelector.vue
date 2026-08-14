@@ -1,26 +1,24 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { formatCurrency, getPlanPriceLabel, services } from '../data/services'
-import youtubeShortsIcon from '../assets/icons/platforms/youtube-shorts.svg'
-import youtubeIcon from '../assets/icons/platforms/youtube.svg'
-import instagramIcon from '../assets/icons/platforms/instagram.svg'
-import tiktokIcon from '../assets/icons/platforms/tiktok.svg'
-import bilibiliIcon from '../assets/icons/platforms/bilibili.svg'
+import CoverServiceDetail from './CoverServiceDetail.vue'
+import PlatformIcon from './PlatformIcon.vue'
 import PricingPlanDetail from './PricingPlanDetail.vue'
 
 const mobilePricingQuery = '(max-width: 820px)'
 
-const platformAssets = {
-  shorts: { src: youtubeShortsIcon, label: 'YouTube Shorts' },
-  youtube: { src: youtubeIcon, label: 'YouTube' },
-  instagram: { src: instagramIcon, label: 'Instagram' },
-  tiktok: { src: tiktokIcon, label: 'TikTok' },
-  bilibili: { src: bilibiliIcon, label: 'bilibili' },
+const platformLabels = {
+  shorts: 'YouTube Shorts',
+  youtube: 'YouTube',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  bilibili: 'bilibili',
 }
 
-const emit = defineEmits(['contact'])
 const activeServiceId = ref('short')
 const activePlanId = ref(services[0].tiers[0].id)
+const activeCoverPlatformId = ref('')
+const activeCoverPresetId = ref('')
 const mobileExpandedServiceId = ref(null)
 const mobileExpandedDurationId = ref(null)
 const isMobileViewport = ref(typeof window !== 'undefined' && window.matchMedia(mobilePricingQuery).matches)
@@ -31,7 +29,7 @@ const activeService = computed(() => (
 ))
 
 const activePlan = computed(() => (
-  activeService.value.tiers.find((tier) => tier.id === activePlanId.value) ?? activeService.value.tiers[0]
+  activeService.value.tiers?.find((tier) => tier.id === activePlanId.value) ?? activeService.value.tiers?.[0] ?? null
 ))
 
 const groupedPlans = computed(() => groupedPlansFor(activeService.value))
@@ -43,7 +41,18 @@ const activeMobilePlan = computed(() => {
   return activeGroup?.tiers.find((tier) => tier.id === activePlanId.value) ?? null
 })
 
+function isCoverService(service) {
+  return service.serviceKind === 'cover'
+}
+
+function resetCoverSelection() {
+  activeCoverPlatformId.value = ''
+  activeCoverPresetId.value = ''
+}
+
 function groupedPlansFor(service) {
+  if (!service.tiers?.length) return []
+
   const groups = []
   const groupsByDuration = new Map()
 
@@ -86,12 +95,44 @@ function isServiceHighlighted(serviceId) {
   return isMobileViewport.value ? isServiceExpanded(serviceId) : isActiveService(serviceId)
 }
 
+function initializeVideoSelection(service, { expandMobileDuration = false } = {}) {
+  const groups = groupedPlansFor(service)
+  const activeGroup = groups.find((group) => group.tiers.some((tier) => tier.id === activePlanId.value))
+  const targetGroup = activeGroup ?? groups[0]
+  const activeTier = targetGroup?.tiers.find((tier) => tier.id === activePlanId.value)
+  const targetTier = activeTier ?? targetGroup?.tiers[0]
+
+  activePlanId.value = targetTier?.id ?? ''
+
+  if (expandMobileDuration) {
+    mobileExpandedDurationId.value = targetGroup?.id ?? null
+  }
+}
+
+function initializeCoverSelection(service) {
+  const activePlatform = service.coverPlatforms?.find((platform) => platform.id === activeCoverPlatformId.value)
+  const targetPlatform = activePlatform ?? service.coverPlatforms?.[0]
+  const activePreset = targetPlatform?.presets.find((preset) => preset.id === activeCoverPresetId.value)
+  const targetPreset = activePreset ?? targetPlatform?.presets.find((preset) => preset.primary) ?? targetPlatform?.presets[0]
+
+  activeCoverPlatformId.value = targetPlatform?.id ?? ''
+  activeCoverPresetId.value = targetPreset?.id ?? ''
+}
+
 function selectService(serviceId) {
   const service = services.find((item) => item.id === serviceId)
   if (!service) return
 
   activeServiceId.value = service.id
-  activePlanId.value = service.tiers[0].id
+
+  if (isCoverService(service)) {
+    activePlanId.value = ''
+    initializeCoverSelection(service)
+    return
+  }
+
+  resetCoverSelection()
+  initializeVideoSelection(service)
 }
 
 function clearMobilePlanSelection() {
@@ -103,12 +144,25 @@ function toggleMobileService(serviceId) {
   if (isServiceExpanded(serviceId)) {
     mobileExpandedServiceId.value = null
     clearMobilePlanSelection()
+    resetCoverSelection()
     return
   }
 
-  activeServiceId.value = serviceId
-  mobileExpandedServiceId.value = serviceId
-  clearMobilePlanSelection()
+  const service = services.find((item) => item.id === serviceId)
+  if (!service) return
+
+  activeServiceId.value = service.id
+  mobileExpandedServiceId.value = service.id
+
+  if (isCoverService(service)) {
+    mobileExpandedDurationId.value = null
+    activePlanId.value = ''
+    initializeCoverSelection(service)
+    return
+  }
+
+  resetCoverSelection()
+  initializeVideoSelection(service, { expandMobileDuration: true })
 }
 
 function handleServiceToggle(serviceId) {
@@ -121,18 +175,39 @@ function handleServiceToggle(serviceId) {
 }
 
 function selectPlan(planId) {
-  if (!activeService.value.tiers.some((tier) => tier.id === planId)) return
+  if (!activeService.value.tiers?.some((tier) => tier.id === planId)) return
   activePlanId.value = planId
 }
 
 function toggleMobileDuration(group) {
+  if (isCoverService(activeService.value)) return
+
   if (isDurationExpanded(group.id)) {
     clearMobilePlanSelection()
     return
   }
 
   mobileExpandedDurationId.value = group.id
-  activePlanId.value = ''
+  activePlanId.value = group.tiers.find((tier) => tier.id === activePlanId.value)?.id ?? group.tiers[0]?.id ?? ''
+}
+
+function selectCoverPlatform(platformId) {
+  if (!isCoverService(activeService.value)) return
+
+  const platform = activeService.value.coverPlatforms.find((item) => item.id === platformId)
+  if (!platform) return
+
+  activeCoverPlatformId.value = platform.id
+  activeCoverPresetId.value = platform.presets.find((preset) => preset.primary)?.id ?? platform.presets[0]?.id ?? ''
+}
+
+function selectCoverPreset(presetId) {
+  const preset = activeService.value.coverPlatforms
+    ?.find((platform) => platform.id === activeCoverPlatformId.value)
+    ?.presets.find((item) => item.id === presetId)
+
+  if (!preset) return
+  activeCoverPresetId.value = preset.id
 }
 
 function makeLeavingPanelInert(element) {
@@ -144,18 +219,24 @@ async function openService({ serviceId, tierId = '' }) {
   const service = services.find((item) => item.id === serviceId)
   if (!service) return
 
-  const selectedTier = service.tiers.find((tier) => tier.id === tierId)
+  const selectedTier = service.tiers?.find((tier) => tier.id === tierId)
 
   activeServiceId.value = service.id
 
-  if (isMobileViewport.value) {
+  if (isCoverService(service)) {
+    activePlanId.value = ''
+    initializeCoverSelection(service)
+    mobileExpandedServiceId.value = isMobileViewport.value ? service.id : null
+    mobileExpandedDurationId.value = null
+  } else if (isMobileViewport.value) {
+    resetCoverSelection()
     activePlanId.value = selectedTier?.id ?? ''
+    initializeVideoSelection(service, { expandMobileDuration: true })
     mobileExpandedServiceId.value = service.id
-    mobileExpandedDurationId.value = selectedTier
-      ? groupedPlansFor(service).find((group) => group.tiers.some((tier) => tier.id === selectedTier.id))?.id ?? null
-      : null
   } else {
-    activePlanId.value = selectedTier?.id ?? service.tiers[0].id
+    resetCoverSelection()
+    activePlanId.value = selectedTier?.id ?? ''
+    initializeVideoSelection(service)
     mobileExpandedServiceId.value = null
     mobileExpandedDurationId.value = null
   }
@@ -182,12 +263,18 @@ function syncMobileViewport(event) {
 
   if (event.matches) {
     activePlanId.value = ''
+    resetCoverSelection()
     return
   }
 
-  if (!activeService.value.tiers.some((tier) => tier.id === activePlanId.value)) {
-    activePlanId.value = activeService.value.tiers[0].id
+  if (isCoverService(activeService.value)) {
+    activePlanId.value = ''
+    initializeCoverSelection(activeService.value)
+    return
   }
+
+  resetCoverSelection()
+  initializeVideoSelection(activeService.value)
 }
 
 onMounted(() => {
@@ -218,7 +305,10 @@ defineExpose({ openService })
             v-for="service in services"
             :key="service.id"
             class="pricing-service-card"
-            :class="{ 'is-mobile-expanded': isServiceExpanded(service.id) }"
+            :class="{
+              'is-mobile-expanded': isServiceExpanded(service.id),
+              'pricing-service-card--cover': isCoverService(service),
+            }"
           >
             <h3>
               <button
@@ -235,20 +325,19 @@ defineExpose({ openService })
               >
                 <span class="pricing-service-card__header">
                   <span class="pricing-service-card__identity">
-                    <span class="pricing-service-card__number">{{ service.number }}</span>
                     <span class="pricing-service-card__title">{{ service.title }}</span>
                   </span>
-                  <span class="pricing-service-card__platforms" aria-label="適合發布平台">
+                  <span v-if="service.platforms.length" class="pricing-service-card__platforms" aria-label="適合發布平台">
                     <span
                       v-for="platform in service.platforms"
                       :key="platform"
                       class="pricing-service-card__platform"
                       :class="{ 'pricing-service-card__platform--shorts': platform === 'shorts' }"
                       role="img"
-                      :aria-label="platformAssets[platform].label"
-                      :title="platformAssets[platform].label"
+                      :aria-label="platformLabels[platform]"
+                      :title="platformLabels[platform]"
                     >
-                      <img :src="platformAssets[platform].src" alt="" aria-hidden="true" />
+                      <PlatformIcon :platform="platform" />
                     </span>
                   </span>
                 </span>
@@ -274,7 +363,17 @@ defineExpose({ openService })
                 role="region"
               >
                 <div class="pricing-mobile-accordion__inner">
-                  <div class="pricing-mobile-plan-picker" :aria-label="`${service.title}方案`">
+                  <CoverServiceDetail
+                    v-if="isCoverService(service)"
+                    :service="service"
+                    :active-platform-id="activeCoverPlatformId"
+                    :active-preset-id="activeCoverPresetId"
+                    variant="mobile"
+                    @select-platform="selectCoverPlatform"
+                    @select-preset="selectCoverPreset"
+                  />
+
+                  <div v-else class="pricing-mobile-plan-picker" :aria-label="`${service.title}方案`">
                     <section
                       v-for="group in groupedPlansFor(service)"
                       :key="group.id"
@@ -334,7 +433,6 @@ defineExpose({ openService })
                               :plan="activeMobilePlan"
                               :service="service"
                               variant="mobile"
-                              @contact="emit('contact')"
                             />
                           </Transition>
                         </div>
@@ -354,9 +452,25 @@ defineExpose({ openService })
             :id="`pricing-panel-${activeService.id}`"
             :key="activeService.id"
             class="pricing-workspace"
+            :class="{ 'pricing-workspace--cover': isCoverService(activeService) }"
             :aria-labelledby="`pricing-trigger-${activeService.id}`"
           >
-            <aside class="pricing-plan-picker" aria-labelledby="pricing-plan-picker-title">
+            <header class="pricing-workspace__owner">
+              <span class="pricing-workspace__owner-label">目前服務</span>
+              <strong class="pricing-workspace__owner-title">{{ activeService.title }}</strong>
+            </header>
+
+            <CoverServiceDetail
+              v-if="isCoverService(activeService)"
+              :service="activeService"
+              :active-platform-id="activeCoverPlatformId"
+              :active-preset-id="activeCoverPresetId"
+              @select-platform="selectCoverPlatform"
+              @select-preset="selectCoverPreset"
+            />
+
+            <template v-else>
+              <aside class="pricing-plan-picker" aria-labelledby="pricing-plan-picker-title">
               <p id="pricing-plan-picker-title" class="pricing-detail-label">選擇方案</p>
 
               <section
@@ -386,18 +500,18 @@ defineExpose({ openService })
                   </button>
                 </div>
               </section>
-            </aside>
+              </aside>
 
-            <Transition name="pricing-detail-switch" mode="out-in">
-              <PricingPlanDetail
-                :key="`${activeService.id}-${activePlan.id}`"
-                content-id="pricing-service-content"
-                :labelledby="`pricing-plan-trigger-${activePlan.id}`"
-                :plan="activePlan"
-                :service="activeService"
-                @contact="emit('contact')"
-              />
-            </Transition>
+              <Transition name="pricing-detail-switch" mode="out-in">
+                <PricingPlanDetail
+                  :key="`${activeService.id}-${activePlan.id}`"
+                  content-id="pricing-service-content"
+                  :labelledby="`pricing-plan-trigger-${activePlan.id}`"
+                  :plan="activePlan"
+                  :service="activeService"
+                />
+              </Transition>
+            </template>
           </section>
         </Transition>
       </div>

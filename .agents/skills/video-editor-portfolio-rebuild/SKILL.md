@@ -30,18 +30,17 @@ description: Manage every audit, design, implementation, QA, and release phase f
 
 本網站是個人影片剪輯工作室，不是多人接案平台，也不是一般企業形象網站。
 
-核心轉換路徑：
+網站使用路徑：
 
 ```text
-作品與審美吸引
-→ 播放 Showreel／代表作品
-→ 瀏覽作品分類
-→ 理解個人能力與經歷
-→ 查看服務、價格與合作流程
-→ 主動聯絡委託
+個人社群先與剪輯師接觸
+→ 潛在客戶索取作品集
+→ 進入本網站查看作品、報價與合作資訊
 ```
 
-首頁必須先展示作品與個人風格，服務與價目表置於作品敘事之後。
+本網站是 Portfolio + Pricing Verification Page，不是 lead-generation landing page。主要頁面以 Hero → Pricing → Works → minimal Footer 收束，服務於已從個人社群接觸到剪輯師的潛在客戶。
+
+不需要獨立 Contact Section，也不得主動重新加入 Email、LINE、Instagram 或 Phone CTA，除非使用者日後明確要求恢復。網站最後以 Works 與 minimal footer 收束。
 
 作品分類固定為：
 
