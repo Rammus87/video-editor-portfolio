@@ -4,7 +4,7 @@ const shortBasicIncluded = [
   '基本字幕編排',
   '基本調色',
   '音樂與音量處理',
-  '依發布平台輸出 1080p MP4',
+  '依需求輸出成片',
 ]
 
 const shortBasicExcluded = [
@@ -21,7 +21,7 @@ const shortOptimizedIncluded = [
   '字幕編排',
   '基本調色',
   '音樂與音量處理',
-  '依發布平台輸出 1080p MP4',
+  '依需求輸出成片',
 ]
 
 const longVideoIncluded = [
@@ -33,13 +33,13 @@ const longVideoIncluded = [
   '基本調色',
   '音樂與音量處理',
   '封面標題規劃',
-  '1080p MP4 輸出',
+  '依需求輸出成片',
 ]
 
 const aerialIncluded = [
   '航拍素材拍攝與基本畫面篩選',
   '基礎剪輯、色彩調整與片段整合',
-  '1080p MP4 成片',
+  '依需求輸出成片',
 ]
 
 const revisionPolicy = {
@@ -62,7 +62,7 @@ export const services = [
   {
     id: 'short',
     number: '01',
-    title: '短片',
+    title: '短片剪輯',
     startingPrice: 300,
     icon: 'solar:clapperboard-linear',
     platforms: ['shorts', 'instagram', 'tiktok', 'bilibili'],
@@ -173,7 +173,7 @@ export const services = [
   {
     id: 'long',
     number: '02',
-    title: '長片',
+    title: '長片剪輯',
     startingPrice: 1500,
     icon: 'solar:film-reel-linear',
     platforms: ['youtube', 'bilibili'],
@@ -450,6 +450,25 @@ export const services = [
     },
   },
 ]
+
+// Business groups share the existing service owner; generated work has its own scope.
+export const serviceGroups = [
+  { id: 'editing', title: '剪輯', description: '把現有素材，整理成完整內容。', serviceIds: ['short', 'long', 'cover'] },
+  { id: 'aerial', title: '航拍', description: '從空中視角，記錄場景與空間。', serviceIds: ['aerial'] },
+  { id: 'aicg', title: 'AICG 影片生成', description: '從概念或圖片，製作新的畫面。', serviceIds: ['aicg'] },
+]
+
+services.push({
+  id: 'aicg',
+  serviceKind: 'generation',
+  title: '生成畫面素材',
+  specification: '720p · Seedance 2.5',
+  description: '提供參考圖或想要的畫面描述，確認鏡頭與風格後，交付可用於剪輯的影片素材。',
+  rates: [
+    { duration: '每 10 秒', price: 500 },
+    { duration: '1 分鐘', price: 2000 },
+  ],
+})
 
 const currency = new Intl.NumberFormat('zh-TW')
 

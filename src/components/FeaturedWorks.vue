@@ -8,12 +8,13 @@ const selectedWork = ref(null)
 const viewerTrigger = ref(null)
 const { section, isMotionReady, isRevealed } = usePortfolioReveal()
 const unavailablePosterIds = ref(new Set())
-const activeOrientation = ref('horizontal')
-const orientationTabRefs = ref({})
-const activeWorkIndexes = ref({
-  horizontal: 1,
-  vertical: 0,
-})
+const categories = [{ id: 'aicg', title: 'AICG' }, { id: 'editing', title: '剪輯' }]
+const directions = [{ id: 'horizontal', title: '橫式' }, { id: 'vertical', title: '直式' }]
+const category = ref('aicg')
+const directionByCategory = ref({ aicg: 'horizontal', editing: 'horizontal' })
+const activeGroup = computed(() => category.value + '-' + directionByCategory.value[category.value])
+const activeWorkIndexes = ref({ 'editing-horizontal': 1 })
+const categoryButtons = new Map()
 let activeCarouselDrag = null
 let suppressWorkOpen = false
 let suppressWorkOpenTimer = null
@@ -25,20 +26,17 @@ const workCards = featuredWorks.map((work) => ({
     unboxing: '55% 50%',
   }[work.id],
 }))
-const horizontalWorks = computed(() => workCards.filter((work) => work.orientation === 'horizontal'))
-const verticalWorks = computed(() => workCards.filter((work) => work.orientation === 'vertical'))
-const orientationSections = computed(() => [
-  {
-    id: 'horizontal',
-    title: '橫式作品',
-    works: horizontalWorks.value,
-  },
-  {
-    id: 'vertical',
-    title: '直式作品',
-    works: verticalWorks.value,
-  },
-])
+const groups = categories.flatMap(type => directions.map(direction => ({
+  id: type.id + '-' + direction.id,
+  direction: direction.id,
+  title: type.title + '・' + direction.title,
+  works: workCards.filter(work =>
+    (work.productionType === 'aicg' ? 'aicg' : 'editing') === type.id &&
+    work.orientation === direction.id),
+})))
+
+const currentWork = computed(() => groups.find(group => group.id === activeGroup.value)
+  ?.works[getActiveWorkIndex(activeGroup.value)])
 
 function isPosterUnavailable(workId) {
   return unavailablePosterIds.value.has(workId)
@@ -48,30 +46,16 @@ function markPosterUnavailable(workId) {
   unavailablePosterIds.value = new Set([...unavailablePosterIds.value, workId])
 }
 
-function setOrientationTabRef(orientation, element) {
-  if (element) orientationTabRefs.value[orientation] = element
-}
-
-function selectOrientation(orientation) {
-  activeOrientation.value = orientation
-}
-
-function handleOrientationKeydown(event, orientation) {
-  const orientationIds = orientationSections.value.map((section) => section.id)
-  const currentIndex = orientationIds.indexOf(orientation)
-  let nextIndex
-
-  if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + orientationIds.length) % orientationIds.length
-  if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % orientationIds.length
-  if (event.key === 'Home') nextIndex = 0
-  if (event.key === 'End') nextIndex = orientationIds.length - 1
-  if (nextIndex === undefined) return
-
+function navigateFilter(event) {
+  const buttons = [...event.currentTarget.querySelectorAll('button')]
+  const index = buttons.indexOf(event.target)
+  if (index < 0) return
+  const target = { ArrowLeft: (index + buttons.length - 1) % buttons.length,
+    ArrowRight: (index + 1) % buttons.length, Home: 0, End: buttons.length - 1 }[event.key]
+  if (target === undefined) return
   event.preventDefault()
-  const nextOrientation = orientationIds[nextIndex]
-  selectOrientation(nextOrientation)
-
-  nextTick(() => orientationTabRefs.value[nextOrientation]?.focus())
+  buttons[target].focus()
+  buttons[target].click()
 }
 
 function getActiveWorkIndex(orientation) {
@@ -128,6 +112,7 @@ function handleCarouselKeydown(event, orientation) {
 
 function handleCarouselPointerDown(event, orientation) {
   if (event.pointerType === 'mouse' && event.button !== 0) return
+  if (event.target.closest('.works-carousel__control')) return
 
   activeCarouselDrag = {
     orientationId: orientation.id,
@@ -136,7 +121,6 @@ function handleCarouselPointerDown(event, orientation) {
     startX: event.clientX,
     moved: false,
   }
-  event.currentTarget.setPointerCapture(event.pointerId)
   event.currentTarget.classList.add('is-dragging')
 }
 
@@ -144,7 +128,10 @@ function handleCarouselPointerMove(event, orientation) {
   if (!activeCarouselDrag || activeCarouselDrag.orientationId !== orientation.id) return
 
   const distance = event.clientX - activeCarouselDrag.startX
-  if (Math.abs(distance) > 12) activeCarouselDrag.moved = true
+  if (Math.abs(distance) > 12) {
+    activeCarouselDrag.moved = true
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
 }
 
 function handleCarouselPointerEnd(event, orientation) {
@@ -197,6 +184,18 @@ async function closeWorkViewer() {
   viewerTrigger.value?.focus()
 }
 
+async function openWorks(type, workId) {
+  category.value = type
+  const group = groups.find(item => item.id.startsWith(type + '-') && item.works.some(work => work.id === workId))
+  if (group) {
+    directionByCategory.value[type] = group.direction
+    setActiveWork(group.id, group.works.findIndex(work => work.id === workId), group.works.length)
+  }
+  await nextTick()
+  categoryButtons.get(type)?.focus({ preventScroll: true })
+}
+defineExpose({ openWorks })
+
 onBeforeUnmount(() => {
   if (suppressWorkOpenTimer) window.clearTimeout(suppressWorkOpenTimer)
 })
@@ -216,47 +215,32 @@ onBeforeUnmount(() => {
         <h2 id="featured-works-title">作品</h2>
       </header>
 
-      <div
-        class="works-gallery__orientation-tabs portfolio-reveal-item"
-        style="--portfolio-reveal-delay: 70ms"
-        role="tablist"
-        aria-label="作品方向"
-      >
-        <button
-          v-for="orientation in orientationSections"
-          :ref="(element) => setOrientationTabRef(orientation.id, element)"
-          :id="`works-orientation-tab-${orientation.id}`"
-          :key="orientation.id"
-          class="works-gallery__orientation-tab"
-          type="button"
-          role="tab"
-          :aria-controls="`works-orientation-panel-${orientation.id}`"
-          :aria-selected="activeOrientation === orientation.id"
-          :tabindex="activeOrientation === orientation.id ? 0 : -1"
-          @click="selectOrientation(orientation.id)"
-          @keydown="handleOrientationKeydown($event, orientation.id)"
-        >
-          {{ orientation.title }}
-        </button>
+      <div class="work-filters">
+        <div class="work-filter-row work-filter-row--category" role="group" aria-label="作品分類" @keydown="navigateFilter">
+          <button v-for="type in categories" :key="type.id" type="button"
+            :ref="el => el ? categoryButtons.set(type.id, el) : categoryButtons.delete(type.id)"
+            :aria-pressed="category === type.id" @click="category = type.id">{{ type.title }}</button>
+        </div>
+        <div class="work-filter-row work-filter-row--direction" role="group" :aria-label="(category === 'aicg' ? 'AICG' : '剪輯') + '作品方向'" @keydown="navigateFilter">
+          <button v-for="direction in directions" :key="direction.id" type="button"
+            :aria-pressed="directionByCategory[category] === direction.id"
+            @click="directionByCategory[category] = direction.id">{{ direction.title }}</button>
+        </div>
       </div>
 
       <div class="works-gallery__groups" aria-label="作品展示">
-        <section
-          v-for="(orientation, index) in orientationSections"
-          :id="`works-orientation-panel-${orientation.id}`"
-          :key="orientation.id"
-          class="works-gallery__group portfolio-reveal-item"
-          :class="`works-gallery__group--${orientation.id}`"
-          v-show="activeOrientation === orientation.id"
-          role="tabpanel"
-          :aria-hidden="activeOrientation !== orientation.id ? 'true' : undefined"
-          :aria-labelledby="`works-orientation-tab-${orientation.id}`"
-          :style="{ '--portfolio-reveal-delay': `${120 + index * 70}ms` }"
-        >
-          <div class="works-carousel-stage">
+        <section v-for="orientation in groups" :key="orientation.id"
+          class="works-gallery__group work-filter-panel"
+          :class="{ 'is-active': activeGroup === orientation.id }"
+          :inert="activeGroup !== orientation.id"
+          :aria-label="orientation.title">
+          <div v-if="!orientation.works.length" class="generation-empty">
+            <h3>目前沒有{{ orientation.title }}作品</h3>
+          </div>
+          <div v-else class="works-carousel-stage">
             <div
               class="works-carousel"
-            :class="`works-carousel--${orientation.id}`"
+            :class="`works-carousel--${orientation.direction}`"
             :aria-label="`${orientation.title}輪播，可使用左右方向鍵瀏覽`"
             role="region"
             tabindex="0"
@@ -328,6 +312,7 @@ onBeforeUnmount(() => {
                     <strong>作品封面暫時無法載入</strong>
                     <span>{{ work.title }}</span>
                   </span>
+                  <span class="works-play-mark" aria-hidden="true">▶</span>
                 </button>
               </div>
             </article>
@@ -352,6 +337,11 @@ onBeforeUnmount(() => {
           </div>
         </section>
       </div>
+      <div class="works-caption-frame" aria-live="polite"><Transition name="motion-content" mode="out-in"><div :key="currentWork?.id" class="works-current-caption">
+        <strong>{{ currentWork?.title }}</strong>
+        <span>{{ currentWork?.category }}</span>
+        <span v-if="!currentWork">真實作品上架後開放觀看</span>
+      </div></Transition></div>
     </div>
   </section>
 

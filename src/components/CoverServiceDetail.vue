@@ -60,6 +60,7 @@ function presetStateLabel(preset) {
 
     <section class="pricing-cover-preset-stage" aria-labelledby="cover-preset-title">
       <p id="cover-preset-title" class="pricing-detail-label">{{ hasMultiplePresets ? '選擇封面比例' : '標準比例' }}</p>
+      <Transition name="motion-content" mode="out-in"><div :key="activePlatformId">
       <template v-if="activePlatform && activePreset">
         <div v-if="hasMultiplePresets" class="pricing-cover-preset-options" role="radiogroup" aria-labelledby="cover-preset-title">
           <button
@@ -87,15 +88,17 @@ function presetStateLabel(preset) {
         </div>
       </template>
       <p v-else class="pricing-cover-preset-stage__empty">先選擇發布平台。</p>
+      </div></Transition>
     </section>
 
     <section v-if="activePreset" class="pricing-cover-price" aria-live="polite" aria-labelledby="cover-pricing-title">
-      <div class="pricing-cover-price__headline">
+      <Transition name="motion-content" mode="out-in"><div :key="`${activePlatformId}-${activePresetId}`" class="pricing-cover-price__headline">
         <p id="cover-pricing-title" class="pricing-detail-label">{{ activePlatform.label }} / {{ activePreset.displayName || activePreset.label }}</p>
         <p class="pricing-cover-price__base">{{ formatCurrency(service.coverPricing.basePrice) }}</p>
         <p class="pricing-cover-price__base-note">{{ service.coverPricing.baseLabel }}</p>
       </div>
 
+      </Transition>
       <dl class="pricing-cover-price__facts">
         <div>
           <dt>交付</dt>

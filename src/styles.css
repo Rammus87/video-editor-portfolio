@@ -1780,23 +1780,18 @@ html { scroll-padding-top: var(--section-anchor-offset); }
 
 /* Phase 3B: every real work uses the same vertical cover treatment. */
 .works-gallery {
-  --works-section-top: clamp(64px, 6vw, 88px);
   --works-section-bottom: clamp(64px, 7vw, 96px);
   --works-header-grid-gap: clamp(28px, 3vw, 40px);
   --works-wall-gap: clamp(24px, 2vw, 30px);
   --works-card-ratio: 4 / 5;
   --works-cover-radius: 8px;
-  border-top: 1px solid rgba(180, 220, 255, .2);
-  background: #0b1429;
-  padding-block: var(--works-section-top) var(--works-section-bottom);
+  background: #081027;
+  padding-block: 0 var(--works-section-bottom);
 }
 
 .works-gallery__layout { display: grid; gap: var(--works-header-grid-gap); }
 
-.works-gallery__header {
-  border-top: 1px solid rgba(180, 220, 255, .3);
-  padding-top: 16px;
-}
+.services-section:has(+ .works-gallery) { padding-bottom: 20px; border-bottom: 0; }
 
 .works-gallery__header h2 {
   margin: 0;
@@ -1879,7 +1874,6 @@ html { scroll-padding-top: var(--section-anchor-offset); }
 
 @media (max-width: 900px) {
   .works-gallery {
-    --works-section-top: 68px;
     --works-header-grid-gap: 34px;
     --works-wall-gap: 20px;
   }
@@ -1888,13 +1882,11 @@ html { scroll-padding-top: var(--section-anchor-offset); }
 
 @media (max-width: 620px) {
   .works-gallery {
-    --works-section-top: 52px;
     --works-section-bottom: 22px;
     --works-header-grid-gap: 30px;
     --works-wall-gap: 14px;
     --works-cover-radius: 7px;
   }
-  .works-gallery__header { padding-top: 14px; }
   .works-gallery__header h2 { font-size: clamp(33px, 9vw, 40px); }
   .works-gallery .works-gallery__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

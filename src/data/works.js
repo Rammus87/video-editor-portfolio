@@ -1,3 +1,27 @@
+// Generated entries use productionType: 'aicg'; add only approved, real media.
+const generationWorks = [
+  ['daily-life', '人物生活', 'horizontal', '01:07.7'],
+  ['adventure', '冒險戰鬥', 'vertical', '01:21.9'],
+  ['campus-romance', '校園戀愛', 'vertical', '00:34.1'],
+  ['period-drama', '歷史古裝', 'horizontal', '00:44.9'],
+  ['revenge', '逆襲復仇', 'vertical', '00:47.0'],
+].map(([slug, title, orientation, duration], index) => ({
+  id: `aicg-${slug}`,
+  title,
+  category: 'AICG 影片生成',
+  productionType: 'aicg',
+  responsibilities: ['影片生成'],
+  orientation,
+  aspectRatio: orientation === 'vertical' ? '9 / 16' : '16 / 9',
+  duration,
+  featuredOrder: 6 + index,
+  videoSrc: `/media/works/aicg/${title}.mp4`,
+  posterSrc: `/media/works/aicg/${title}.jpg`,
+  audioAllowed: true,
+  publicDisplay: true,
+  anchorId: `work-aicg-${slug}`,
+}))
+
 export const works = [
   {
     id: 'aerial',
@@ -85,6 +109,7 @@ export const works = [
     publicDisplay: true,
     anchorId: 'work-app-tutorial',
   },
+  ...generationWorks,
 ]
 
 export const featuredWorks = works

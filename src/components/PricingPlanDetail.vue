@@ -1,6 +1,9 @@
 <script setup>
+import SmoothDisclosure from './SmoothDisclosure.vue'
 import { computed, ref } from 'vue'
 import { formatCurrency, getPlanPriceLabel } from '../data/services'
+
+defineEmits(['view-generation'])
 
 const props = defineProps({
   contentId: { type: String, required: true },
@@ -51,7 +54,7 @@ function getAerialExamplePrice(service, example) {
     <h3 v-if="!mobileSecondaryOnly" class="pricing-detail-panel__sr-title">{{ plan.duration }}・{{ plan.variant }}</h3>
 
     <div v-if="!mobileSecondaryOnly" class="pricing-detail-panel__columns">
-      <div class="pricing-detail-panel__primary">
+      <div v-if="service.serviceKind !== 'generation'" class="pricing-detail-panel__primary">
         <section>
           <p class="pricing-detail-label">適用情境</p>
           <p class="pricing-detail-panel__copy">{{ plan.summary }}</p>
@@ -71,6 +74,8 @@ function getAerialExamplePrice(service, example) {
           <p class="pricing-detail-panel__delivery">{{ tierDeliveryLabel(plan) }}</p>
           <small v-if="plan.deliveryBreakdown">{{ plan.deliveryBreakdown }}</small>
         </section>
+
+        <div v-if="service.quoteNote" class="generation-quote-note"><p>{{ service.quoteNote }}</p></div>
 
         <section v-if="plan.excluded.length" class="pricing-detail-excluded">
           <p class="pricing-detail-label pricing-detail-label--muted">不包含內容</p>
@@ -93,6 +98,8 @@ function getAerialExamplePrice(service, example) {
       </aside>
     </div>
 
+    <a v-if="service.serviceKind === 'generation' && !mobileSecondaryOnly" class="generation-work-link" href="#works" @click.prevent="$emit('view-generation')">查看 AICG 作品 <span aria-hidden="true">↗</span></a>
+
     <section v-if="!mobileCoreOnly" :key="`${service.id}-${plan.id}`" class="pricing-workflow" :class="{ 'is-mobile-collapsible': isMobileDetail }" :aria-labelledby="`pricing-${variant}-${service.id}-workflow-title`">
       <div class="pricing-workflow__heading">
         <h4 v-if="!isMobileDetail" :id="`pricing-${variant}-${service.id}-workflow-title`">合作流程</h4>
@@ -109,8 +116,8 @@ function getAerialExamplePrice(service, example) {
           <span aria-hidden="true">{{ isSecondaryPanelExpanded('workflow') ? '−' : '+' }}</span>
         </button>
       </div>
-      <div
-        v-if="!isMobileDetail || isSecondaryPanelExpanded('workflow')"
+      <SmoothDisclosure
+        :open="!isMobileDetail || isSecondaryPanelExpanded('workflow')"
         :id="`pricing-${variant}-${service.id}-workflow-panel`"
         class="pricing-mobile-secondary-panel"
         :aria-labelledby="`pricing-${variant}-${service.id}-workflow-title`"
@@ -127,7 +134,7 @@ function getAerialExamplePrice(service, example) {
           </li>
         </ol>
         <p class="pricing-workflow__note">{{ service.cooperation.revisionPolicy.note }}</p>
-      </div>
+      </SmoothDisclosure>
     </section>
 
     <section v-if="!mobileCoreOnly && service.longTermPlans.length" class="pricing-fixed-output" :class="{ 'is-mobile-collapsible': isMobileDetail }" :aria-labelledby="`pricing-${variant}-${service.id}-long-term-title`">
@@ -144,8 +151,8 @@ function getAerialExamplePrice(service, example) {
         <span>長期合作</span>
         <span aria-hidden="true">{{ isSecondaryPanelExpanded('long-term') ? '−' : '+' }}</span>
       </button>
-      <div
-        v-if="!isMobileDetail || isSecondaryPanelExpanded('long-term')"
+      <SmoothDisclosure
+        :open="!isMobileDetail || isSecondaryPanelExpanded('long-term')"
         :id="`pricing-${variant}-${service.id}-long-term-panel`"
         class="pricing-mobile-secondary-panel"
         :aria-labelledby="`pricing-${variant}-${service.id}-long-term-title`"
@@ -157,7 +164,15 @@ function getAerialExamplePrice(service, example) {
             <strong>{{ formatCurrency(longTermPlan.price) }}</strong>
           </li>
         </ul>
-      </div>
+      </SmoothDisclosure>
     </section>
   </article>
 </template>
+
+<style scoped>
+.pricing-detail-panel__secondary:only-child {
+  grid-column: 1 / -1;
+  border: 0;
+  padding: 0;
+}
+</style>

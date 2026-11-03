@@ -97,6 +97,7 @@ onBeforeUnmount(() => {
 <template>
   <header ref="header" class="app-header" :class="{ 'is-scrolled': !isOverHero }">
     <div class="app-header-inner page-width">
+      <a class="studio-wordmark" href="#home" aria-label="Cinematic Editing Desk 主頁">CINEMATIC<span>EDITING DESK</span></a>
       <nav aria-label="主選單">
         <a
           v-for="item in navItems"

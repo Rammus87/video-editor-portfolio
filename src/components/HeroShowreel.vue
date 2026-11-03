@@ -1,95 +1,46 @@
 <script setup>
 import { Icon } from '@iconify/vue'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { heroWork } from '../data/works'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { featuredWorks, heroWork } from '../data/works'
+
+const emit = defineEmits(['view-works'])
 
 const configuredShowreelPath = import.meta.env.VITE_SHOWREEL_URL?.trim() || ''
 const showreelPath = ref(configuredShowreelPath || heroWork.heroPreviewSrc)
+const adventure = featuredWorks.find(work => work.id === 'aicg-adventure')
 const video = ref(null)
+const adventureVideo = ref(null)
+const activeFilm = ref('editing')
+const adventureRequested = ref(false)
 const videoUnavailable = ref(false)
+const adventureUnavailable = ref(false)
+const isPaused = ref(false)
+
+async function selectFilm(id) {
+  activeFilm.value = id
+  if (id === 'adventure') adventureRequested.value = true
+  await nextTick()
+  syncPlayback()
+}
+
+function toggleBackgroundPlayback() {
+  isPaused.value = !isPaused.value
+  syncPlayback()
+}
 const reducedMotion = ref(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 const usingConfiguredShowreel = ref(Boolean(configuredShowreelPath))
-const hero = ref(null)
 let motionQuery
-let finePointerQuery
-let spotlightFrame
-let pointerTracking = false
-let pointerX = 50
-let pointerY = 50
 
-function updateSpotlightPosition() {
-  spotlightFrame = undefined
-  const element = hero.value
-  if (!element) return
-
-  const bounds = element.getBoundingClientRect()
-  const x = Math.min(100, Math.max(0, ((pointerX - bounds.left) / bounds.width) * 100))
-  const y = Math.min(100, Math.max(0, ((pointerY - bounds.top) / bounds.height) * 100))
-  element.style.setProperty('--spotlight-x', `${x}%`)
-  element.style.setProperty('--spotlight-y', `${y}%`)
-  element.classList.add('is-spotlight-active')
-}
-
-function handlePointerMove(event) {
-  pointerX = event.clientX
-  pointerY = event.clientY
-  if (!spotlightFrame) spotlightFrame = window.requestAnimationFrame(updateSpotlightPosition)
-}
-
-function handlePointerLeave() {
-  hero.value?.classList.remove('is-spotlight-active')
-}
-
-function stopPointerTracking() {
-  if (!pointerTracking || !hero.value) return
-  hero.value.removeEventListener('pointermove', handlePointerMove)
-  hero.value.removeEventListener('pointerleave', handlePointerLeave)
-  pointerTracking = false
-}
-
-function syncPointerTracking() {
-  const canTrack = finePointerQuery?.matches && !motionQuery?.matches
-  if (canTrack && !pointerTracking && hero.value) {
-    hero.value.addEventListener('pointermove', handlePointerMove, { passive: true })
-    hero.value.addEventListener('pointerleave', handlePointerLeave)
-    pointerTracking = true
-    return
+function syncPlayback() {
+  for (const [id, media] of [['editing', video.value], ['adventure', adventureVideo.value]]) {
+    if (!media) continue
+    if (id !== activeFilm.value || isPaused.value || reducedMotion.value || document.hidden) {
+      media.pause()
+    } else {
+      media.muted = true
+      media.play().catch(() => {})
+    }
   }
-
-  if (!canTrack) {
-    stopPointerTracking()
-    handlePointerLeave()
-  }
-}
-
-async function onCanPlay() {
-  videoUnavailable.value = false
-  await ensureVideoPlayback()
-}
-
-async function ensureVideoPlayback() {
-  const media = video.value
-  if (!media) return
-
-  if (reducedMotion.value) {
-    media.pause()
-    return
-  }
-
-  media.muted = true
-  media.defaultMuted = true
-
-  try {
-    await media.play()
-  } catch {}
-}
-
-function onLoadedMetadata() {
-  void ensureVideoPlayback()
-}
-
-function handleVisibilityChange() {
-  if (document.visibilityState === 'visible') void ensureVideoPlayback()
 }
 
 function onMediaError() {
@@ -104,77 +55,77 @@ function onMediaError() {
 
 function updateMotionPreference(event) {
   reducedMotion.value = event.matches
-  if (reducedMotion.value) {
-    video.value?.pause()
-  } else {
-    void ensureVideoPlayback()
-  }
-  syncPointerTracking()
+  syncPlayback()
 }
 
 onMounted(() => {
   motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-  finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)')
   motionQuery.addEventListener('change', updateMotionPreference)
-  finePointerQuery.addEventListener('change', syncPointerTracking)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
+  document.addEventListener('visibilitychange', syncPlayback)
   updateMotionPreference(motionQuery)
-  syncPointerTracking()
-  void ensureVideoPlayback()
 })
 
 onBeforeUnmount(() => {
-  if (spotlightFrame) window.cancelAnimationFrame(spotlightFrame)
-  stopPointerTracking()
+  video.value?.pause()
+  adventureVideo.value?.pause()
   motionQuery?.removeEventListener('change', updateMotionPreference)
-  finePointerQuery?.removeEventListener('change', syncPointerTracking)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  document.removeEventListener('visibilitychange', syncPlayback)
 })
 </script>
 
 <template>
-  <section
-    ref="hero"
-    id="home"
-    class="hero-section"
-    aria-labelledby="hero-title"
-  >
-    <video
-      v-if="showreelPath && !videoUnavailable"
-      :key="showreelPath"
-      ref="video"
-      class="hero-background-video"
-      :src="showreelPath"
-      :poster="heroWork.posterSrc"
-      :autoplay="!reducedMotion"
-      muted
-      loop
-      playsinline
-      webkit-playsinline
-      :controls="false"
-      preload="metadata"
-      aria-hidden="true"
-      @canplay="onCanPlay"
-      @loadedmetadata="onLoadedMetadata"
-      @error="onMediaError"
-    />
-    <div v-else class="hero-media-unavailable" aria-live="polite">
-      <p>作品集影片準備中</p>
-      <span>影片上線後，這裡會呈現代表作品。</span>
+  <section id="home" class="hero-section reel-home" aria-labelledby="hero-title">
+<div class="reel-screen">
+          <video
+            v-if="showreelPath && !videoUnavailable"
+            :key="showreelPath"
+            ref="video"
+            class="hero-background-video"
+            :src="showreelPath"
+            :poster="heroWork.posterSrc"
+            muted
+            loop
+            playsinline
+            webkit-playsinline
+            :controls="false"
+            preload="metadata"
+            aria-hidden="true"
+            @canplay="syncPlayback"
+            @loadedmetadata="syncPlayback"
+            @error="onMediaError"
+          />
+          <div v-else class="hero-media-unavailable" aria-live="polite">
+            <p>作品集影片準備中</p>
+            <span>影片上線後，這裡會呈現代表作品。</span>
+          </div>
+          <div v-if="adventure" class="hero-adventure" :class="{ 'is-selected': activeFilm === 'adventure' }"
+            :style="adventureRequested ? { '--film-poster': 'url(' + adventure.posterSrc + ')' } : undefined" aria-hidden="true">
+            <template v-if="adventureRequested">
+              <video v-if="!adventureUnavailable" ref="adventureVideo" :src="adventure.videoSrc"
+                :poster="adventure.posterSrc" muted loop playsinline preload="metadata"
+                @canplay="syncPlayback" @error="adventureUnavailable = true" />
+              <img v-else :src="adventure.posterSrc" alt="" />
+            </template>
+          </div>
+        </div>
+    <div class="reel-selector page-width">
+      <div v-if="adventure" class="hero-film-picker" role="group" aria-label="首頁影片">
+        <button type="button" :aria-pressed="activeFilm === 'editing'" @click="selectFilm('editing')"><small aria-hidden="true">01</small>剪輯作品</button>
+        <button type="button" :aria-pressed="activeFilm === 'adventure'" @click="selectFilm('adventure')"><small aria-hidden="true">02</small>AICG作品</button>
+      </div>
     </div>
-    <div class="hero-dark-overlay" aria-hidden="true"></div>
-    <div class="hero-spotlight-overlay" aria-hidden="true"></div>
-
-    <div class="hero-content page-width">
-      <div class="hero-copy">
-        <h1 id="hero-title">
-          <span>讓剪輯</span>
-          <span>替你的內容說話。</span>
-        </h1>
-        <p class="hero-description">我幫你把內容剪清楚。</p>
-        <a class="cta-button hero-cta" href="#works">
-          查看精選作品 <Icon icon="solar:arrow-right-linear" aria-hidden="true" />
-        </a>
+    <div class="reel-intro page-width">
+      <p class="reel-services">剪輯　／　航拍　／　AI 影片生成</p>
+      <h1 id="hero-title"><span>從想法</span><span>到成片</span></h1>
+      <div class="hero-actions">
+        <a class="cta-button hero-cta" href="#works"
+          @click="activeFilm === 'editing' ? emit('view-works', 'editing', heroWork.id) : emit('view-works', 'aicg', adventure.id)">
+          {{ activeFilm === 'editing' ? '看剪輯作品' : '看 AICG 作品' }} <Icon icon="solar:arrow-right-linear" aria-hidden="true" /></a>
+          <button class="hero-playback" type="button" :aria-pressed="isPaused || reducedMotion"
+            :disabled="reducedMotion || (activeFilm === 'editing' ? videoUnavailable : adventureUnavailable)"
+            @click="toggleBackgroundPlayback">
+            {{ reducedMotion ? '已暫停' : isPaused ? '繼續播放' : '暫停播放' }}
+          </button>
       </div>
     </div>
   </section>

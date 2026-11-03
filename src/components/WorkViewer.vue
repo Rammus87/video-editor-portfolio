@@ -62,6 +62,10 @@ function finishClose() {
 function requestClose() {
   if (closeEmitted || isClosing.value) return
 
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finishClose()
+    return
+  }
   isClosing.value = true
   isVisible.value = false
   resetPlayback()
@@ -82,17 +86,6 @@ function handleBackdropClick(event) {
   if (event.target === dialog.value) requestClose()
 }
 
-async function togglePlayback() {
-  if (!video.value || isClosing.value) return
-
-  if (video.value.paused) {
-    await startPlayback()
-    return
-  }
-
-  video.value.pause()
-}
-
 function markMediaUnavailable() {
   isMediaUnavailable.value = true
 }
@@ -105,7 +98,7 @@ onMounted(async () => {
   dialog.value?.focus()
 
   window.requestAnimationFrame(() => {
-    isVisible.value = true
+    if (!isClosing.value) isVisible.value = true
   })
 
   openTimer = window.setTimeout(startPlayback, ENTER_DURATION_MS)
@@ -133,6 +126,7 @@ onBeforeUnmount(() => {
       @keydown.escape.stop.prevent="requestClose('escape')"
       @click="handleBackdropClick"
     >
+      <button class="work-viewer__close" type="button" aria-label="關閉作品觀看器" @click="requestClose">關閉 ×</button>
       <p :id="`work-viewer-accessible-title-${props.work.id}`" class="work-viewer__accessible-title">
         {{ `${props.work.title}作品觀看器` }}
       </p>
@@ -148,10 +142,10 @@ onBeforeUnmount(() => {
           class="work-viewer__video"
           :src="props.work.videoSrc"
           :poster="props.work.posterSrc"
+          controls
           playsinline
           preload="metadata"
           :aria-label="`${props.work.title}作品影片；點擊可播放或暫停`"
-          @click="togglePlayback"
           @ended="requestClose('ended')"
           @error="markMediaUnavailable"
         />
