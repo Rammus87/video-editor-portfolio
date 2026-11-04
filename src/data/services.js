@@ -463,7 +463,7 @@ services.push({
   serviceKind: 'generation',
   title: '生成畫面素材',
   specification: '720p · Seedance 2.5',
-  description: '提供參考圖或想要的畫面描述，確認鏡頭與風格後，交付可用於剪輯的影片素材。',
+  description: '以上費用包含：前期討論、劇本、資產圖、生成、剪輯。',
   rates: [
     { duration: '每 10 秒', price: 500 },
     { duration: '1 分鐘', price: 2000 },

@@ -1,105 +1,80 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { formatCurrency, serviceGroups, services } from '../data/services'
-import SmoothDisclosure from './SmoothDisclosure.vue'
-import ServiceWorkspace from './ServiceWorkspace.vue'
+import { computed, ref } from 'vue'
+import { services, serviceGroups, getPlanPriceLabel, formatCurrency } from '../data/services'
+import PricingReader from './PricingReader.vue'
 
 const emit = defineEmits(['view-generation'])
-const mobileQuery = window.matchMedia('(max-width: 820px)')
-const isMobile = ref(mobileQuery.matches)
-const expandedGroup = ref(null)
-function updateLayout() { isMobile.value = mobileQuery.matches }
-onMounted(() => mobileQuery.addEventListener('change', updateLayout))
-onBeforeUnmount(() => mobileQuery.removeEventListener('change', updateLayout))
-
-const activeGroup = ref('editing')
-const workspaceRefs = new Map()
-const tabRefs = new Map()
-const groups = serviceGroups.map(group => ({ ...group, services: group.serviceIds.map(id => services.find(service => service.id === id)) }))
-
-function selectGroup(id) { activeGroup.value = id }
-function handleGroupKey(event, index) {
-  let target
-  if (event.key === 'ArrowRight') target = (index + 1) % groups.length
-  if (event.key === 'ArrowLeft') target = (index - 1 + groups.length) % groups.length
-  if (event.key === 'Home') target = 0
-  if (event.key === 'End') target = groups.length - 1
-  if (target === undefined) return
+const groupId = ref('editing')
+const serviceId = ref('short')
+const planId = ref('30s-basic')
+const reader = ref(null)
+const group = computed(() => serviceGroups.find(item => item.id === groupId.value))
+const groupServices = computed(() => services.filter(item => group.value.serviceIds.includes(item.id)))
+const service = computed(() => services.find(item => item.id === serviceId.value))
+const choices = computed(() => service.value.tiers ?? service.value.rates?.map((rate, index) => ({ ...rate, id: `rate-${index}`, variant: service.value.title })) ?? [{ id: 'cover', duration: service.value.coverPricing.baseLabel, price: service.value.coverPricing.basePrice, variant: service.value.title }])
+const plan = computed(() => choices.value.find(item => item.id === planId.value) ?? choices.value[0])
+const durations = computed(() => [...new Set(choices.value.map(item => item.duration))])
+const variants = computed(() => choices.value.filter(item => item.duration === plan.value.duration))
+const price = computed(() => service.value.pricingFormula ? formatCurrency(plan.value.price) : getPlanPriceLabel(plan.value))
+const priceUnit = computed(() => service.value.pricingFormula && plan.value.id === 'more-duration' ? `／每 ${service.value.pricingFormula.unitMinutes} 分鐘` : '')
+const delivery = computed(() => plan.value.deliveryLabel ?? service.value.coverPricing?.delivery ?? service.value.specification)
+const summary = computed(() => plan.value.included?.filter(item => item !== plan.value.variant).slice(0, 4).join('・') ?? service.value.description ?? service.value.hoverCopy)
+const note = computed(() => service.value.pricingFormula?.travelFeeLabel ?? (plan.value.excluded?.length ? `不含${plan.value.excluded.join('、')}` : ''))
+function selectService(id) { serviceId.value = id; planId.value = services.find(item => item.id === id).tiers?.[0]?.id ?? 'rate-0' }
+function selectGroup(id) { groupId.value = id; selectService(serviceGroups.find(item => item.id === id).serviceIds[0]) }
+function selectDuration(duration) { planId.value = choices.value.find(item => item.duration === duration).id }
+function openReader(mode, event) { reader.value = { mode, service: service.value, plan: plan.value, trigger: event.currentTarget } }
+function keyboardChoice(event) {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+  const buttons = [...event.currentTarget.querySelectorAll('button')]
+  const index = buttons.indexOf(event.target)
+  if (index < 0) return
   event.preventDefault()
-  selectGroup(groups[target].id)
-  tabRefs.get(groups[target].id)?.focus()
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length
+  buttons[next].focus({ preventScroll: true }); buttons[next].click()
 }
-async function openService(request) {
-  const group = groups.find(item => item.serviceIds.includes(request.serviceId))
-  if (!group) return
-  activeGroup.value = group.id
-  expandedGroup.value = group.id
-  await nextTick()
-  await workspaceRefs.get(group.id)?.openService(request)
-  document.getElementById(`service-group-panel-${group.id}`)?.scrollTo({ top: 0, behavior: 'instant' })
-  document.getElementById('pricing')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' })
-  tabRefs.get(group.id)?.focus({ preventScroll: true })
+function openService(request) {
+  const owner = serviceGroups.find(item => item.serviceIds.includes(request.serviceId))
+  if (!owner) return
+  selectGroup(owner.id); selectService(request.serviceId)
+  if (request.planId) planId.value = request.planId
 }
 defineExpose({ openService })
 </script>
 
 <template>
-  <section id="pricing" class="services-section section-space" aria-labelledby="services-title">
-    <div class="page-width">
-      <div class="section-heading services-heading">
-        <p class="eyebrow">服務與價格</p>
-        <h2 id="services-title">選擇您的方案</h2>
+  <section id="pricing" class="quote-screen" aria-labelledby="services-title">
+    <div class="page-width quote-layout">
+      <header class="quote-heading"><p><span>02</span> / 服務與價格</p><h2 id="services-title">選擇您的方案</h2></header>
+      <div class="quote-categories" role="group" aria-label="服務類別" @keydown="keyboardChoice">
+        <button v-for="item in serviceGroups" :key="item.id" :aria-pressed="groupId === item.id" @click="selectGroup(item.id)">{{ item.id === 'aicg' ? 'AICG' : item.title }}</button>
       </div>
-      <div v-if="!isMobile" class="business-tabs" role="tablist" aria-label="服務類別">
-        <button v-for="(group, index) in groups" :key="group.id" :id="`service-group-${group.id}`"
-          :ref="element => element ? tabRefs.set(group.id, element) : tabRefs.delete(group.id)"
-          type="button" role="tab" :aria-selected="activeGroup === group.id" :aria-controls="`service-group-panel-${group.id}`"
-          :tabindex="activeGroup === group.id ? 0 : -1" @click="selectGroup(group.id)" @keydown="handleGroupKey($event, index)">
-          <strong>{{ group.title }}</strong><span>{{ group.description }}</span>
-        </button>
-      </div>
-      <div class="business-frame">
-        <template v-for="group in groups" :key="group.id">
-          <button v-if="isMobile" :id="`service-group-${group.id}`"
-            :ref="element => element ? tabRefs.set(group.id, element) : tabRefs.delete(group.id)"
-            type="button" class="service-disclosure-trigger" :aria-expanded="expandedGroup === group.id"
-            :aria-controls="`service-group-panel-${group.id}`"
-            @click="expandedGroup = expandedGroup === group.id ? null : group.id">
-            {{ group.title }}<span aria-hidden="true"></span>
+      <div class="quote-controls">
+        <div class="quote-services" role="group" aria-label="選擇服務" @keydown="keyboardChoice">
+          <button v-for="item in groupServices" :key="item.id" :aria-pressed="serviceId === item.id" @click="selectService(item.id)">{{ { short: '短片', long: '長片', cover: '封面' }[item.id] ?? item.title }}</button>
+        </div>
+        <div class="quote-durations" role="group" aria-label="選擇長度或規格" @keydown="keyboardChoice">
+          <button v-for="duration in durations" :key="duration" :aria-pressed="plan.duration === duration" @click="selectDuration(duration)">{{ duration }}</button>
+        </div>
+        <div class="quote-variants" :class="{ 'quote-variants--redundant': variants.length === 1 && variants[0].variant === service.title }" :inert="variants.length === 1 && variants[0].variant === service.title" role="group" aria-label="選擇方案" @keydown="keyboardChoice">
+          <button v-for="item in variants" :key="item.id" :aria-pressed="plan.id === item.id" @click="planId = item.id">
+            <span>{{ item.variant }}</span><span class="quote-choice-status">{{ plan.id === item.id ? '已選' : '選擇' }}</span>
           </button>
-          <component :is="isMobile ? SmoothDisclosure : 'section'" :id="`service-group-panel-${group.id}`"
-            class="business-panel" :class="{ 'is-active': !isMobile && activeGroup === group.id }"
-            :aria-labelledby="`service-group-${group.id}`"
-            v-bind="isMobile ? { open: expandedGroup === group.id, role: 'region' }
-              : { role: 'tabpanel', 'aria-hidden': activeGroup !== group.id, inert: activeGroup !== group.id }">
-          <article v-if="group.services[0].serviceKind === 'generation'" class="generation-offer">
-            <h3>{{ group.services[0].title }}</h3>
-            <p class="generation-spec">{{ group.services[0].specification }}</p>
-            <dl>
-              <div v-for="rate in group.services[0].rates" :key="rate.duration">
-                <dt>{{ rate.duration }}</dt><dd>{{ formatCurrency(rate.price) }}</dd>
-              </div>
-            </dl>
-            <p>{{ group.services[0].description }}</p>
-            <a class="generation-work-link" href="#works" @click="emit('view-generation')">查看 AICG 作品 <span aria-hidden="true">↗</span></a>
-          </article>
-          <ServiceWorkspace v-else :ref="element => element ? workspaceRefs.set(group.id, element) : workspaceRefs.delete(group.id)"
-            :services="group.services" :group-id="group.id" @view-generation="emit('view-generation')" />
-          </component>
-        </template>
+        </div>
       </div>
-      <p v-if="!isMobile" class="service-reading-note">選擇服務查看內容；詳細方案可在區塊內捲動閱讀。</p>
+      <div class="quote-summary-frame" aria-live="polite" aria-atomic="true">
+        <Transition name="quote-swap"><div :key="service.id + plan.id" class="quote-summary">
+          <p class="quote-price" :class="{ 'quote-price--long': price.length > 10 }">{{ price }}<span v-if="priceUnit" class="quote-price-unit">{{ priceUnit }}</span></p>
+          <div class="quote-facts"><p>{{ summary }}</p><p>{{ delivery }}</p><p v-if="note" class="quote-note">{{ note }}</p></div>
+        </div></Transition>
+      </div>
+      <div class="quote-actions">
+        <button class="quote-primary" aria-haspopup="dialog" @click="openReader('details', $event)">查看完整方案</button>
+        <button v-if="service.cooperation" aria-haspopup="dialog" @click="openReader('workflow', $event)">合作流程</button>
+        <a v-else-if="service.serviceKind === 'generation'" href="#works" @click="emit('view-generation')">查看 AICG 作品</a>
+        <button v-else aria-haspopup="dialog" @click="openReader('details', $event)">平台與尺寸</button>
+      </div>
     </div>
+    <PricingReader v-if="reader" v-bind="reader" @close="reader = null" />
   </section>
 </template>
-
-<style scoped>
-.generation-offer { max-width: 640px; padding: clamp(22px, 5vw, 64px); }
-.generation-offer h3 { margin: 0 0 4px; font-size: clamp(26px, 3vw, 40px); }
-.generation-offer dl { margin: 0 0 20px; }
-.generation-offer dl div { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 0; border-top: 1px solid #324158; }
-.generation-offer dd { margin: 0; font-weight: 700; font-size: 22px; }
-.generation-offer .generation-spec { margin: 0 0 24px; color: #c3cfe1; font-size: 15px; }
-.generation-offer > p:not(.generation-spec) { color: #bdc9da; line-height: 1.8; }
-.generation-offer .generation-work-link { margin-top: 12px; }
-</style>

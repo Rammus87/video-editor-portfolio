@@ -1,6 +1,8 @@
 <script setup>
+import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import WorkViewer from './WorkViewer.vue'
+import playIcon from '../assets/icons/bootstrap/play-fill.svg'
 import { featuredWorks } from '../data/works'
 import { usePortfolioReveal } from '../composables/usePortfolioMotion'
 
@@ -35,6 +37,7 @@ const groups = categories.flatMap(type => directions.map(direction => ({
     work.orientation === direction.id),
 })))
 
+const currentGroup = computed(() => groups.find(group => group.id === activeGroup.value))
 const currentWork = computed(() => groups.find(group => group.id === activeGroup.value)
   ?.works[getActiveWorkIndex(activeGroup.value)])
 
@@ -181,7 +184,7 @@ async function closeWorkViewer() {
   selectedWork.value = null
 
   await nextTick()
-  viewerTrigger.value?.focus()
+  viewerTrigger.value?.focus({ preventScroll: true })
 }
 
 async function openWorks(type, workId) {
@@ -312,7 +315,7 @@ onBeforeUnmount(() => {
                     <strong>作品封面暫時無法載入</strong>
                     <span>{{ work.title }}</span>
                   </span>
-                  <span class="works-play-mark" aria-hidden="true">▶</span>
+                  <span class="works-play-mark" aria-hidden="true"><img :src="playIcon" alt="" width="22" height="22">播放</span>
                 </button>
               </div>
             </article>
@@ -337,11 +340,26 @@ onBeforeUnmount(() => {
           </div>
         </section>
       </div>
-      <div class="works-caption-frame" aria-live="polite"><Transition name="motion-content" mode="out-in"><div :key="currentWork?.id" class="works-current-caption">
-        <strong>{{ currentWork?.title }}</strong>
-        <span>{{ currentWork?.category }}</span>
-        <span v-if="!currentWork">真實作品上架後開放觀看</span>
-      </div></Transition></div>
+      <div class="works-caption-frame">
+        <div class="works-caption-line">
+          <div class="works-caption-title" aria-live="polite"><Transition name="motion-content" mode="out-in"><strong :key="currentWork?.id">{{ currentWork?.title }}</strong></Transition></div>
+          <span class="works-counter">{{ String(getActiveWorkIndex(activeGroup) + 1).padStart(2, '0') }} / {{ String(currentGroup.works.length).padStart(2, '0') }}</span>
+          <button class="works-next" type="button" aria-label="下一個作品" @click="setActiveWork(activeGroup, (getActiveWorkIndex(activeGroup) + 1) % currentGroup.works.length, currentGroup.works.length)"><Icon icon="solar:alt-arrow-right-linear" aria-hidden="true" /></button>
+        </div>
+        <div class="works-progress" aria-hidden="true"><span :style="{ width: 100 / currentGroup.works.length + '%', transform: 'translateX(' + getActiveWorkIndex(activeGroup) * 100 + '%)' }"></span></div>
+      </div>
+      <section class="works-directory" aria-labelledby="works-directory-title">
+        <header><h3 id="works-directory-title">作品目錄</h3><span>選擇作品切換預覽</span></header>
+        <div class="works-directory-frame">
+          <div v-for="group in groups" :key="group.id" class="works-directory-list work-filter-panel" :class="{ 'is-active': activeGroup === group.id }" :inert="activeGroup !== group.id">
+            <button v-for="(work, index) in group.works" :key="work.id" type="button" class="works-directory-row" :aria-current="getActiveWorkIndex(group.id) === index ? 'true' : undefined" @click="setActiveWork(group.id, index, group.works.length)">
+              <img :src="work.posterSrc" alt="" loading="lazy" />
+              <span class="works-directory-copy"><strong>{{ String(index + 1).padStart(2, '0') }} / {{ work.title }}</strong><span class="works-preview-status">{{ getActiveWorkIndex(group.id) === index ? '正在預覽' : '切換預覽' }}</span></span>
+              <Icon icon="solar:alt-arrow-right-linear" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   </section>
 
